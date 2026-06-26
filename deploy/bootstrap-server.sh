@@ -107,8 +107,7 @@ cp "${APP_DIR}/deploy/supervisor/horizon.conf" /etc/supervisor/conf.d/p2p-horizo
 sed -i "s|/var/www/p2p.processing|${APP_DIR}|g" /etc/supervisor/conf.d/p2p-horizon.conf
 
 CRON_LINE="* * * * * cd ${APP_DIR} && php artisan schedule:run >> /dev/null 2>&1"
-(crontab -u www-data -l 2>/dev/null | grep -F "schedule:run" || true) | grep -q "schedule:run" || \
-    (crontab -u www-data -l 2>/dev/null; echo "${CRON_LINE}") | crontab -u www-data -
+(crontab -u www-data -l 2>/dev/null | grep -v 'schedule:run'; echo "${CRON_LINE}") | crontab -u www-data -
 
 sudo -u "${APP_USER}" bash "${APP_DIR}/deploy/deploy.sh"
 

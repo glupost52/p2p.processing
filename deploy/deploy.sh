@@ -45,4 +45,10 @@ if command -v supervisorctl >/dev/null 2>&1; then
     sudo supervisorctl restart p2p-horizon 2>/dev/null || sudo supervisorctl start p2p-horizon 2>/dev/null || true
 fi
 
+if command -v crontab >/dev/null 2>&1; then
+    echo "==> Ensure Laravel scheduler cron (www-data)"
+    CRON_LINE="* * * * * cd ${APP_DIR} && php artisan schedule:run >> /dev/null 2>&1"
+    (sudo crontab -u www-data -l 2>/dev/null | grep -Fv "${APP_DIR}" || true; echo "${CRON_LINE}") | sudo crontab -u www-data -
+fi
+
 echo "==> Done. Health: curl -sI \${APP_URL:-https://platpoint.org}/up"
