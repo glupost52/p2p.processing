@@ -16,6 +16,9 @@ git pull origin "${BRANCH}"
 echo "==> Install PHP dependencies"
 composer install --no-dev --optimize-autoloader --no-interaction
 
+echo "==> Generate Ziggy routes"
+php artisan ziggy:generate resources/js/ziggy-routes.js
+
 echo "==> Build frontend"
 npm ci
 npm run build

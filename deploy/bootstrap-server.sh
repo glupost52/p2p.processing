@@ -47,7 +47,8 @@ apt-get install -y \
     php8.3-zip \
     php8.3-bcmath \
     php8.3-gmp \
-    php8.3-intl
+    php8.3-intl \
+    php8.3-gd
 
 if ! command -v composer >/dev/null 2>&1; then
     curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
@@ -89,11 +90,12 @@ if [[ ! -f "${ENV_FILE}" ]]; then
     sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" "${ENV_FILE}"
 fi
 
-sudo -u "${APP_USER}" bash -c "cd '${APP_DIR}' && composer install --no-dev --optimize-autoloader --no-interaction"
-
 if ! grep -q '^APP_KEY=base64:' "${ENV_FILE}"; then
-    sudo -u "${APP_USER}" php "${APP_DIR}/artisan" key:generate --force
+    KEY=$(php -r "echo 'base64:'.base64_encode(random_bytes(32));")
+    sed -i "s|^APP_KEY=.*|APP_KEY=${KEY}|" "${ENV_FILE}"
 fi
+
+sudo -u "${APP_USER}" bash -c "cd '${APP_DIR}' && composer install --no-dev --optimize-autoloader --no-interaction"
 
 cp "${APP_DIR}/deploy/nginx/platpoint.org.conf" "/etc/nginx/sites-available/${DOMAIN}"
 ln -sf "/etc/nginx/sites-available/${DOMAIN}" "/etc/nginx/sites-enabled/${DOMAIN}"
