@@ -63,14 +63,8 @@ router.on('success', (event) => {
                         </svg>
                     </button>
                     <Link :href="route('dashboard')" class="flex ms-2 md:me-24 text-base-content">
-                        <div class="hidden lg:block">
-                            <div class="text-4xl font-semibold">{{$page.props.app.name}}</div>
-                            <div class="text-xs font-medium text-base-content/70">Надежный процессинг</div>
-                        </div>
-                        <div class="lg:hidden">
-                            <div class="text-[1.95rem] font-semibold">{{$page.props.app.name}}</div>
-                            <div class="text-[0.65rem] text-base-content/70">Надежный процессинг</div>
-                        </div>
+                        <div class="hidden lg:block text-4xl font-semibold">{{$page.props.app.name}}</div>
+                        <div class="lg:hidden text-[1.95rem] font-semibold">{{$page.props.app.name}}</div>
                     </Link>
                 </div>
             </div>

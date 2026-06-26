@@ -159,10 +159,6 @@ const openDocs = () => {
         <div class="drawer-side lg:hidden">
             <label for="mobile-drawer" class="drawer-overlay"></label>
             <aside class="min-h-full w-75 sm:w-80 bg-base-100">
-<!--                <div class="p-7 pb-0">
-                    <div class="text-4xl font-semibold">{{$page.props.app.name}}</div>
-                    <div class="text-xs font-medium text-base-content/70">Надежный процессинг</div>
-                </div>-->
                 <div class="h-20"></div>
 <!--         ThemeMarquee       <div class="h-32"></div>-->
 
