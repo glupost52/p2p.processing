@@ -55,16 +55,20 @@ class TableOrderResource extends JsonResource
                     'name' => $this->paymentDetail->user->name,
                     'email' => $this->paymentDetail->user->email,
                 ],
-                'payment_gateway' => [
+                'payment_gateway' => $this->paymentGateway ? [
                     'name' => $this->paymentGateway->name,
-                    'logo_path' => asset('storage/logos/'.$this->paymentGateway->logo),
-                ],
+                    'logo_path' => $this->paymentGateway->logo
+                        ? asset('storage/logos/'.$this->paymentGateway->logo)
+                        : null,
+                ] : null,
                 'status' => $this->dispute->status->value,
                 'reason' => $this->dispute->reason,
                 'created_at' => $this->dispute->created_at->toDateTimeString(),
             ] : null,
-            'payment_gateway_name' => $this->paymentGateway->name,
-            'payment_gateway_logo_path' => asset('storage/logos/'.$this->paymentGateway->logo),
+            'payment_gateway_name' => $this->paymentGateway?->name,
+            'payment_gateway_logo_path' => $this->paymentGateway?->logo
+                ? asset('storage/logos/'.$this->paymentGateway->logo)
+                : null,
             'payment_detail' => $this->paymentDetail->detail,
             'payment_detail_type' => $this->paymentDetail->detail_type->value,
             'payment_detail_name' => $this->paymentDetail->name,
