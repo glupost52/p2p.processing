@@ -41,11 +41,23 @@ sudo supervisorctl status p2p-horizon
 php /var/www/p2p.processing/artisan horizon:status
 ```
 
+## Безопасность (после bootstrap)
+
+```bash
+ssh root@YOUR_VPS_IP
+bash /var/www/p2p.processing/deploy/harden-server.sh
+```
+
+Скрипт: fail2ban (SSH), UFW (22 открыт, 80/443 только Cloudflare), пароль Redis, проверка bind localhost.
+
+**Важно:** DNS записи должны быть **Proxied** (оранжевое облако CF), иначе certbot renewal через HTTP-01 не дойдёт до origin.
+
 ## Структура
 
 | Файл | Назначение |
 |---|---|
 | `bootstrap-server.sh` | одноразовая настройка VPS (root) |
+| `harden-server.sh` | hardening: UFW, fail2ban, Redis password |
 | `deploy.sh` | git pull, build, migrate, cache, restart horizon |
 | `nginx/platpoint.org.conf` | vhost |
 | `supervisor/horizon.conf` | очереди Laravel Horizon |
