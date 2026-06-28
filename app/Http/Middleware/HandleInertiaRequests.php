@@ -54,10 +54,11 @@ class HandleInertiaRequests extends Middleware
         $rates = cache()->remember('currency-rates', 60, function () {
             return Currency::getAll()
                 ->transform(function (Currency $currency) {
+                    $market = services()->market()->resolveDefaultMarket($currency);
+
                     return [
                         'code' => $currency->getCode(),
-                        'buy_price' => services()->market()->getBuyPrice($currency)->toBeauty(),
-                        'sell_price' => services()->market()->getSellPrice($currency)->toBeauty(),
+                        'price' => services()->market()->getBuyPrice($currency, $market, false)->toBeauty(),
                     ];
                 })
                 ->sort(function ($currency) {

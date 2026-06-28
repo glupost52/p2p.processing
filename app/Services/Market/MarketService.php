@@ -71,6 +71,22 @@ class MarketService implements MarketServiceContract
         );
     }
 
+    public function resolveDefaultMarket(Currency $currency): MarketEnum
+    {
+        if ($currency->equals(Currency::RUB())) {
+            return MarketEnum::RAPIRA;
+        }
+
+        return MarketEnum::BYBIT;
+    }
+
+    public function getGreenBookPrice(Currency $currency, ?MarketEnum $market = null, bool $withoutFalling = true): Money
+    {
+        $market ??= $this->resolveDefaultMarket($currency);
+
+        return $this->getBuyPrice($currency, $market, $withoutFalling);
+    }
+
     public function loadFilterConditions(): void
     {
         foreach (MarketEnum::cases() as $market) {

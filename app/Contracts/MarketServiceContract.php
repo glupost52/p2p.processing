@@ -13,9 +13,13 @@ interface MarketServiceContract
 
     public function loadPricesFor(Currency $currency, MarketEnum $market): void;
 
-    public function getSellPrice(Currency $currency, MarketEnum $market, bool $withoutFalling = true): Money;
+    public function getSellPrice(Currency $currency, MarketEnum $market = MarketEnum::BYBIT, bool $withoutFalling = true): Money;
 
-    public function getBuyPrice(Currency $currency, MarketEnum $market, bool $withoutFalling = true): Money;
+    public function getBuyPrice(Currency $currency, MarketEnum $market = MarketEnum::BYBIT, bool $withoutFalling = true): Money;
+
+    public function resolveDefaultMarket(Currency $currency): MarketEnum;
+
+    public function getGreenBookPrice(Currency $currency, ?MarketEnum $market = null, bool $withoutFalling = true): Money;
 
     public function loadFilterConditions(): void;
 

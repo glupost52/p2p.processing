@@ -125,7 +125,8 @@ class WalletService implements WalletServiceContract
             $secondaryCurrency = Currency::make($userFiatCurrency);
         }
 
-        $conversionRate = services()->market()->getSellPrice($secondaryCurrency);
+        $market = services()->market()->resolveDefaultMarket($secondaryCurrency);
+        $conversionRate = services()->market()->getBuyPrice($secondaryCurrency, $market, false);
 
         $totalAvailableBalances = collect();
 
