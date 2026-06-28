@@ -86,18 +86,14 @@ class MerchantGatewayCommissionValidator
     private function validateMerchantTiers(PaymentGateway $gateway, array $tiers): void
     {
         $normalizedTiers = collect($tiers)
-            ->map(function (array $tier, int $index) {
+            ->map(function (array $tier) {
                 return [
                     'min_amount' => (int) ($tier['min_amount'] ?? 0),
                     'max_amount' => (int) ($tier['max_amount'] ?? 0),
                     'total_service_commission_rate' => (float) ($tier['total_service_commission_rate'] ?? 0),
-                    'sort_order' => $index,
                 ];
             })
-            ->sortBy([
-                ['sort_order', 'asc'],
-                ['min_amount', 'asc'],
-            ])
+            ->sortBy('min_amount')
             ->values()
             ->all();
 

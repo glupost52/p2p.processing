@@ -97,6 +97,29 @@ class MerchantGatewayCommissionValidatorTest extends TestCase
         ]);
     }
 
+    public function test_accepts_merchant_tiers_when_ui_order_differs_from_amount_order(): void
+    {
+        $gateway = $this->makeGateway([]);
+
+        $this->validator->validateSingleGatewaySettings($gateway, [
+            'commission_mode' => 'tiered',
+            'custom_gateway_commission_tiers' => [
+                [
+                    'min_amount' => 1000,
+                    'max_amount' => 15000,
+                    'total_service_commission_rate' => 16,
+                ],
+                [
+                    'min_amount' => 100,
+                    'max_amount' => 999,
+                    'total_service_commission_rate' => 18,
+                ],
+            ],
+        ]);
+
+        $this->assertTrue(true);
+    }
+
     /**
      * @param array<int, PaymentGatewayCommissionTier> $tiers
      */

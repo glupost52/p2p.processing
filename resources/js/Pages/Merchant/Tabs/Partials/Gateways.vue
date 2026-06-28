@@ -1,6 +1,7 @@
 <script setup>
 import InputLabel from "@/Components/InputLabel.vue";
 import InputHelper from "@/Components/InputHelper.vue";
+import InputError from "@/Components/InputError.vue";
 import TextInput from "@/Components/TextInput.vue";
 import CommissionTiersEditor from "@/Components/Commission/CommissionTiersEditor.vue";
 import {computed, ref, watch} from "vue";
@@ -41,6 +42,7 @@ const deepClone = (value, fallback) => {
 
 const gatewayEditMode = ref(false);
 const processing = ref(false);
+const errors = ref({});
 const localGatewaySettings = ref(deepClone(props.gatewaySettings, {}));
 const expandedTierGatewayIds = ref([]);
 const macros = ref({
@@ -196,6 +198,7 @@ const submitGatewaySettings = () => {
     }
 
     processing.value = true;
+    errors.value = {};
 
     axios.patch(route("merchants.gateway-settings.update", props.merchantId), {
         gateway_settings: localGatewaySettings.value,
@@ -204,6 +207,15 @@ const submitGatewaySettings = () => {
     }).then(({data}) => {
         emit('updated', data);
         gatewayEditMode.value = false;
+    }).catch((error) => {
+        if (error.response?.status === 422 && error.response.data?.errors) {
+            errors.value = error.response.data.errors;
+            return;
+        }
+
+        errors.value = {
+            gateway_settings: [error.response?.data?.message ?? 'Не удалось сохранить настройки шлюзов.'],
+        };
     }).finally(() => {
         processing.value = false;
     });
@@ -231,7 +243,7 @@ const applyMacros = (type) => {
             <div class="flex items-center">
                 <button
                     v-if="gatewayEditMode === false"
-                    @click.prevent="gatewayEditMode = true"
+                    @click.prevent="gatewayEditMode = true; errors = {}"
                     type="button"
                     class="btn btn-outline btn-primary btn-xs"
                 >
@@ -298,6 +310,7 @@ const applyMacros = (type) => {
                 </form>
             </div>
         </div>
+        <InputError v-if="errors.gateway_settings" class="mb-3" :message="errors.gateway_settings" />
         <div class="mb-5" v-for="(gateways, currency) in groupedGateways" :key="currency">
             <div>
         <span
