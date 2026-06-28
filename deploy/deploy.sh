@@ -16,6 +16,9 @@ git pull origin "${BRANCH}"
 echo "==> Install PHP dependencies"
 composer install --no-dev --optimize-autoloader --no-interaction
 
+echo "==> Clear route cache before Ziggy (stale cache hides new routes)"
+php artisan route:clear
+
 echo "==> Generate Ziggy routes"
 php artisan ziggy:generate resources/js/ziggy-routes.js
 

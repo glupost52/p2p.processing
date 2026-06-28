@@ -22,11 +22,14 @@ const role = usePage().props.auth.role;
 const showAllRates = ref(false);
 const isImpersonated = ref(usePage().props.auth.is_impersonated);
 
-// initialize components based on data attribute selectors
-onMounted(() => {
+const applyViewModeFromRoute = () => {
     viewStore.setTraderViewMode()
 
     if (route().current('admin.*')) {
+        viewStore.setAdminViewMode()
+    }
+
+    if (usePage().props.auth.is_admin && route().current('trader.commission-rates.*')) {
         viewStore.setAdminViewMode()
     }
 
@@ -42,7 +45,6 @@ onMounted(() => {
         viewStore.setMerchantSupportViewMode()
     }
 
-    //TODO это костыль для мерчантов
     if (route().current('profile.*')) {
         if (role.name === 'Super Admin') {
             viewStore.setAdminViewMode();
@@ -70,6 +72,11 @@ onMounted(() => {
     if (route().current('payments.*')) {
         viewStore.setMerchantViewMode()
     }
+}
+
+// initialize components based on data attribute selectors
+onMounted(() => {
+    applyViewModeFromRoute()
 })
 
 const getMobileDrawer = () => document.getElementById('mobile-drawer');
@@ -89,52 +96,7 @@ const closeMobileDrawer = () => {
 }
 
 router.on('success', (event) => {
-    viewStore.setTraderViewMode()
-
-    if (route().current('admin.*')) {
-        viewStore.setAdminViewMode()
-    }
-
-    if (route().current('leader.*')) {
-        viewStore.setTeamLeaderViewMode()
-    }
-
-    if (route().current('support.*')) {
-        viewStore.setSupportViewMode()
-    }
-
-    if (route().current('merchant-support.*')) {
-        viewStore.setMerchantSupportViewMode()
-    }
-
-    //TODO это костыль для мерчантов
-    if (route().current('profile.*')) {
-        if (role.name === 'Super Admin') {
-            viewStore.setAdminViewMode();
-        } else if (role.name === 'Merchant') {
-            viewStore.setMerchantViewMode();
-        } else if (role.name === 'Trader') {
-            viewStore.setTraderViewMode();
-        } else if (role.name === 'Team Leader') {
-            viewStore.setTeamLeaderViewMode();
-        } else if (role.name === 'Support') {
-            viewStore.setSupportViewMode();
-        } else if (role.name === 'Merchant Support') {
-            viewStore.setMerchantSupportViewMode();
-        }
-    }
-    if (route().current('merchant.*')) {
-        viewStore.setMerchantViewMode()
-    }
-    if (route().current('merchants.*')) {
-        viewStore.setMerchantViewMode()
-    }
-    if (route().current('integration.*')) {
-        viewStore.setMerchantViewMode()
-    }
-    if (route().current('payments.*')) {
-        viewStore.setMerchantViewMode()
-    }
+    applyViewModeFromRoute()
     rates.value = usePage().props.data.rates;
     isImpersonated.value = usePage().props.auth.is_impersonated;
     closeMobileDrawer();

@@ -27,8 +27,12 @@ const props = defineProps({
 });
 
 const pageTitle = computed(() => {
-    if (props.canSelectTrader && props.trader) {
-        return `Ставки: ${props.trader.name}`;
+    if (props.canSelectTrader) {
+        if (props.trader) {
+            return `Ставки: ${props.trader.name}`;
+        }
+
+        return 'Ставки трейдеров';
     }
 
     return 'Мои ставки';
