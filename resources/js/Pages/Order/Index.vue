@@ -145,7 +145,6 @@ defineOptions({ layout: AuthenticatedLayout })
                         <DateFilter name="startDate" title="Начальная дата"/>
                         <DateFilter name="endDate" title="Конечная дата"/>
                         <InputFilter
-                            v-if="viewStore.isAdminViewMode"
                             name="externalID"
                             placeholder="Внешний ID"
                         />

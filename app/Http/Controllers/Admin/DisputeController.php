@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\DisputeStatus;
 use App\Exceptions\DisputeException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Dispute\StoreRequest;
 use App\Http\Resources\DisputeResource;
 use App\Models\Dispute;
 use App\Models\Order;
@@ -31,10 +32,10 @@ class DisputeController extends Controller
         return Inertia::render('Dispute/Index', compact('disputes', 'filters', 'filtersVariants', 'oldestDisputeCreatedAt'));
     }
 
-    public function store(Order $order)
+    public function store(StoreRequest $request, Order $order)
     {
         try {
-            services()->dispute()->create($order->id);
+            services()->dispute()->create($order->id, $request->file('receipt'));
 
             return redirect()->back()->with('message', 'Спор успешно открыт.');
         } catch (DisputeException $e) {

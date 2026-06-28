@@ -13,6 +13,7 @@ import DateTime from "@/Components/DateTime.vue";
 import DisplayUUID from "@/Components/DisplayUUID.vue";
 import DUUID from "@/Components/DUUID.vue";
 import EditOrderAmountModal from "@/Modals/Order/EditOrderAmountModal.vue";
+import CreateDisputeModal from "@/Modals/CreateDisputeModal.vue";
 
 const viewStore = useViewStore();
 const modalStore = useModalStore();
@@ -41,23 +42,9 @@ const confirmAcceptOrder = (order) => {
     });
 }
 
-const confirmCreateDispute = (order) => {
-    modalStore.openConfirmModal({
-        title: 'Вы уверены что хотите открыть спор по сделке?',
-        confirm_button_name: 'Открыть спор',
-        confirm: () => {
-            useForm({}).post(route('admin.disputes.store', order.id), {
-                preserveScroll: true,
-                onSuccess: () => {
-                    modalStore.closeAll()
-                    router.visit(route(viewStore.adminPrefix + 'orders.index'), {
-                        only: ['orders'],
-                    })
-                },
-            })
-        }
-    });
-}
+const openCreateDisputeModal = (order) => {
+    modalStore.openCreateDisputeModal({ order_id: order.id });
+};
 
 const order = ref(null);
 const callbackCopied = ref(false);
@@ -177,7 +164,7 @@ const copyCallbackUrl = async (callback_url) => {
                                                 <DUUID :uuid="order.uuid"/>
                                             </dd>
                                         </dl>
-                                        <dl v-if="viewStore.isAdminViewMode || viewStore.isSupportViewMode" class="block sm:flex items-center justify-between gap-4">
+                                        <dl v-if="order.external_id" class="block sm:flex items-center justify-between gap-4">
                                             <dt class="text-base-content/70">Внешний ID</dt>
                                             <dd class="font-medium text-base-content">{{ order.external_id }}</dd>
                                         </dl>
@@ -398,9 +385,40 @@ const copyCallbackUrl = async (callback_url) => {
                 </form>
             </ModalBody>
 
-            <ModalFooter v-if="(order.status === 'pending' || order.status === 'fail' || viewStore.isAdminViewMode) && !viewStore.isSupportViewMode">
+            <ModalFooter v-if="viewStore.isSupportViewMode || (order.status === 'pending' || order.status === 'fail' || viewStore.isAdminViewMode)">
                 <div class="flex justify-center w-full">
-                    <template v-if="! order.has_dispute">
+                    <template v-if="viewStore.isSupportViewMode">
+                        <template v-if="! order.has_dispute">
+                            <button
+                                @click.prevent="openCreateDisputeModal(order)"
+                                type="button"
+                                class="btn btn-warning btn-sm"
+                            >
+                                <svg class="w-3.5 h-3.5 me-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
+                                </svg>
+                                Открыть спор
+                            </button>
+                        </template>
+                        <template v-else>
+                            <div>
+                                <h2 class="text-base-content">По этой сделке был открыт спор</h2>
+                                <div class="flex justify-center">
+                                    <Link
+                                        @click="modalStore.closeAll()"
+                                        :href="route('support.disputes.index')"
+                                        class="inline-flex items-center link link-primary"
+                                    >
+                                        Перейти
+                                        <svg class="w-4 h-4 ms-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
+                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5h12m0 0L9 1m4 4L9 9"/>
+                                        </svg>
+                                    </Link>
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+                    <template v-else-if="! order.has_dispute">
                         <button
                             v-if="order.status === 'pending' || order.status === 'fail'"
                             @click.prevent="confirmAcceptOrder(order)"
@@ -414,7 +432,7 @@ const copyCallbackUrl = async (callback_url) => {
                         </button>
                         <button
                             v-if="viewStore.isAdminViewMode"
-                            @click.prevent="confirmCreateDispute(order)"
+                            @click.prevent="openCreateDisputeModal(order)"
                             type="button"
                             class="btn btn-warning btn-sm me-2"
                         >
@@ -424,7 +442,7 @@ const copyCallbackUrl = async (callback_url) => {
                             Открыть спор
                         </button>
                     </template>
-                    <template v-if="order.has_dispute">
+                    <template v-else-if="order.has_dispute">
                         <div>
                             <h2 class="text-base-content">По этой сделке был открыт спор</h2>
                             <div class="flex justify-center">
@@ -446,6 +464,7 @@ const copyCallbackUrl = async (callback_url) => {
         </template>
     </Modal>
     <EditOrderAmountModal/>
+    <CreateDisputeModal/>
 </template>
 
 <style scoped>

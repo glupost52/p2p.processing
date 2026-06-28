@@ -16,6 +16,10 @@ export const useModalStore = defineStore('modal', {
                     showed: false,
                     params: {},
                 },
+                createDispute: {
+                    showed: false,
+                    params: {},
+                },
                 deposit: {
                     showed: false,
                     params: {},
@@ -195,6 +199,9 @@ export const useModalStore = defineStore('modal', {
         },
         openDisputeCancelModal(props) {
             this.openModal('disputeCancel', props);
+        },
+        openCreateDisputeModal(props) {
+            this.openModal('createDispute', props);
         },
         openDepositModal(props) {
             this.openModal('deposit', props);

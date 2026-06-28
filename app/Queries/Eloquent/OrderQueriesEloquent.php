@@ -121,6 +121,9 @@ class OrderQueriesEloquent implements OrderQueries
             ->when($filters->uuid, function ($query) use ($filters) {
                 $query->where('uuid', 'LIKE', '%' . $filters->uuid . '%');
             })
+            ->when($filters->externalID, function ($query) use ($filters) {
+                $query->where('external_id', 'LIKE', '%' . $filters->externalID . '%');
+            })
             ->when($filters->amount, function ($query) use ($filters) {
                 $query->where(function ($query) use ($filters) {
                     $amount = Money::fromPrecision($filters->amount, Currency::USDT())->toUnits();
