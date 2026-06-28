@@ -4,6 +4,7 @@ namespace App\Http\Requests\PaymentDetail;
 
 use App\Enums\DetailType;
 use App\Models\PaymentGateway;
+use App\Rules\TurkishIbanRule;
 use App\Rules\UniquePaymentDetail;
 use App\Rules\UniquePhonePaymentDetail;
 use App\Services\Money\Currency;
@@ -64,8 +65,10 @@ class StoreRequest extends FormRequest
         } else if (DetailType::ACCOUNT_NUMBER->equals($this->detail_type)) {
             $detail = [
                 'required',
-                'digits:20',
-                new UniquePaymentDetail()
+                $this->isTurkishAccountNumber()
+                    ? new TurkishIbanRule()
+                    : 'digits:20',
+                new UniquePaymentDetail(),
             ];
         } else {
             $detail = [
@@ -134,8 +137,12 @@ class StoreRequest extends FormRequest
         $maxOrderAmount = $this->max_order_amount;
         $orderIntervalMinutes = $this->order_interval_minutes;
 
-        if ($this->detail_type !== DetailType::NSPK->value) {
-            $detail = preg_replace('~\D+~', '', $detail);
+        if ($this->detail_type === DetailType::NSPK->value) {
+            // URL — без нормализации
+        } elseif ($this->isTurkishAccountNumber()) {
+            $detail = strtoupper(preg_replace('/\s+/u', '', (string) $detail) ?? '');
+        } else {
+            $detail = preg_replace('~\D+~', '', (string) $detail);
         }
         if ($dailyLimit === '' || $dailyLimit === null) {
             $dailyLimit = null;
@@ -173,6 +180,12 @@ class StoreRequest extends FormRequest
         $user = $this->user();
 
         return ! ($user?->can_work_without_device ?? false);
+    }
+
+    private function isTurkishAccountNumber(): bool
+    {
+        return DetailType::ACCOUNT_NUMBER->equals($this->detail_type)
+            && strtolower((string) $this->currency) === Currency::TRY()->getCode();
     }
 
     private function guessCountryByPrefix(string $number): ?string
