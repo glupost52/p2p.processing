@@ -23,11 +23,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property DetailType $detail_type
  * @property string $initials
  * @property boolean $is_active
- * @property Money $daily_limit
+ * @property Money|null $daily_limit
  * @property Money $current_daily_limit
  * @property int|null $daily_successful_orders_limit
  * @property int $current_daily_successful_orders_count
- * @property Money $max_pending_orders_quantity
+ * @property int $max_pending_orders_quantity
  * @property Money|null $min_order_amount
  * @property Money|null $max_order_amount
  * @property int|null $order_interval_minutes
