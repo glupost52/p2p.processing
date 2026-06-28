@@ -36,9 +36,11 @@ php artisan event:cache
 php artisan optimize
 
 echo "==> Permissions"
-chmod -R ug+rwx storage bootstrap/cache
 if command -v sudo >/dev/null 2>&1; then
+    sudo chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
     sudo chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+else
+    chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
 fi
 
 if command -v supervisorctl >/dev/null 2>&1; then
