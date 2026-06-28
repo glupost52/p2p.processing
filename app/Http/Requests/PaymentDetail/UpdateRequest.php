@@ -27,9 +27,9 @@ class UpdateRequest extends FormRequest
             'name' => ['required', 'string', 'min:3', 'max:30'],
             'initials' => ['required', 'string', 'min:3', 'max:40'],
             'is_active' => ['required', 'boolean'],
-            'daily_limit' => ['required', 'numeric', 'min:0'],
+            'daily_limit' => ['nullable', 'integer', 'min:0', 'max:100000000'],
             'daily_successful_orders_limit' => ['nullable', 'integer', 'min:1', 'max:100000000'],
-            'max_pending_orders_quantity' => ['required', 'integer', 'min:1', 'max:100000000'],
+            'max_pending_orders_quantity' => ['nullable', 'integer', 'min:0', 'max:100000000'],
             'min_order_amount' => ['nullable', 'integer', 'min:0'],
             'max_order_amount' => ['nullable', 'integer', 'min:0', 'gte:min_order_amount'],
             'order_interval_minutes' => ['nullable', 'integer', 'min:1'],
@@ -52,6 +52,7 @@ class UpdateRequest extends FormRequest
             'daily_successful_orders_limit' => __('дневной лимит по количеству сделок'),
             'min_order_amount' => __('минимальная сумма сделки'),
             'max_order_amount' => __('максимальная сумма сделки'),
+            'max_pending_orders_quantity' => __('максимальное количество активных сделок'),
             'order_interval_minutes' => __('интервал между сделками'),
             'payment_gateway_ids' => __('платежные методы'),
             'payment_gateway_ids.*' => __('платежный метод'),
@@ -68,14 +69,29 @@ class UpdateRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $dailyLimit = $this->daily_limit;
         $dailySuccessfulOrdersLimit = $this->daily_successful_orders_limit;
+        $maxPendingOrdersQuantity = $this->max_pending_orders_quantity;
+        $orderIntervalMinutes = $this->order_interval_minutes;
 
+        if ($dailyLimit === '' || $dailyLimit === null) {
+            $dailyLimit = null;
+        }
         if ($dailySuccessfulOrdersLimit === '' || $dailySuccessfulOrdersLimit === null) {
             $dailySuccessfulOrdersLimit = null;
         }
+        if ($maxPendingOrdersQuantity === '' || $maxPendingOrdersQuantity === null) {
+            $maxPendingOrdersQuantity = null;
+        }
+        if ($orderIntervalMinutes === '' || $orderIntervalMinutes === null) {
+            $orderIntervalMinutes = null;
+        }
 
         $this->merge([
+            'daily_limit' => $dailyLimit,
             'daily_successful_orders_limit' => $dailySuccessfulOrdersLimit,
+            'max_pending_orders_quantity' => $maxPendingOrdersQuantity,
+            'order_interval_minutes' => $orderIntervalMinutes,
         ]);
     }
 }

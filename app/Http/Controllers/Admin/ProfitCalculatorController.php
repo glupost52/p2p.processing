@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Contracts\ProfitServiceContract;
+use App\Enums\CommissionOperationType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Profit\CalculateProfitRequest;
+use App\Http\Requests\Admin\Profit\ResolveCommissionRatesRequest;
+use App\Models\Merchant;
+use App\Models\PaymentGateway;
+use App\Models\User;
 use App\Services\Money\Currency;
 use App\Services\Money\Money;
 use Illuminate\Http\JsonResponse;
@@ -23,8 +28,19 @@ class ProfitCalculatorController extends Controller
         $currencies = Currency::getAllCodes();
         $defaultCurrency = $currencies[0] ?? 'rub';
 
+        $paymentGateways = PaymentGateway::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'currency'])
+            ->map(fn (PaymentGateway $gateway) => [
+                'id' => $gateway->id,
+                'name' => $gateway->name,
+                'currency' => strtoupper($gateway->currency instanceof Currency ? $gateway->currency->getCode() : (string) $gateway->currency),
+            ])
+            ->values();
+
         return Inertia::render('Admin/Profit/Index', [
             'currencies' => $currencies,
+            'paymentGateways' => $paymentGateways,
             'defaults' => [
                 'logic' => 'in_body',
                 'amount_currency' => $defaultCurrency,
@@ -33,6 +49,53 @@ class ProfitCalculatorController extends Controller
                 'total_commission_rate' => 5,
                 'trader_commission_rate' => 2,
                 'teamleader_commission_rate' => 0,
+            ],
+        ]);
+    }
+
+    public function resolveRates(ResolveCommissionRatesRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $paymentGateway = PaymentGateway::query()
+            ->with('commissionTiers')
+            ->findOrFail($validated['payment_gateway_id']);
+
+        $amount = Money::fromPrecision((string) $validated['amount'], $validated['amount_currency']);
+        $merchant = isset($validated['merchant_id'])
+            ? Merchant::query()->find($validated['merchant_id'])
+            : null;
+        $trader = isset($validated['trader_id'])
+            ? User::query()->with('traderCommissionRates')->find($validated['trader_id'])
+            : null;
+
+        $operationType = CommissionOperationType::from($validated['operation_type']);
+        $primeTime = $operationType === CommissionOperationType::ORDER
+            ? services()->settings()->getPrimeTimeBonus()
+            : null;
+
+        try {
+            $resolved = services()->commissionRate()->resolve(
+                paymentGateway: $paymentGateway,
+                amount: $amount,
+                operationType: $operationType,
+                merchant: $merchant,
+                trader: $trader,
+                primeTime: $primeTime,
+            );
+        } catch (\Throwable $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_commission_rate' => $resolved->totalServiceCommissionRate,
+                'trader_commission_rate' => $resolved->traderCommissionRate,
+                'prime_time_bonus_rate' => $resolved->primeTimeBonusRate,
             ],
         ]);
     }

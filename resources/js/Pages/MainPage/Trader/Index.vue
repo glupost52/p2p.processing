@@ -292,10 +292,7 @@ defineOptions({ layout: AuthenticatedLayout })
                         </div>
                     </div>
 
-
                     <!-- График -->
-
-
                     <div class="card bg-base-100 shadow p-6 mt-8 pl-3">
                         <h2 class="text-base-content/70 text-lg pl-3">{{ chartTitle }}</h2>
                         <div ref="chart" class="h-50"></div>

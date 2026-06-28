@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PaymentDetail from "@/Components/PaymentDetail.vue";
 import PaymentDetailLimit from "@/Components/PaymentDetailLimit.vue";
 import PaymentDetailOrdersLimit from "@/Components/PaymentDetailOrdersLimit.vue";
+import PaymentDetailPendingOrdersLimit from "@/Components/PaymentDetailPendingOrdersLimit.vue";
 import MainTableSection from "@/Wrappers/MainTableSection.vue";
 import {useViewStore} from "@/store/view.js";
 import AddMobileIcon from "@/Components/AddMobileIcon.vue";
@@ -135,6 +136,14 @@ const percentLabel = (percent) => {
     }
 
     return `${Math.round(percent)}%`;
+};
+
+const radialPercentLabel = (current, limit) => {
+    if (!hasLimit(limit)) {
+        return '∞';
+    }
+
+    return percentLabel(percentFrom(current, limit));
 };
 
 const radialStyle = (value) => {
@@ -515,7 +524,7 @@ defineOptions({ layout: AuthenticatedLayout })
                                                                     :aria-valuenow="percentFrom(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity)"
                                                                 >
                                                                     <span class="text-[10px] leading-none">
-                                                                        {{ percentLabel(percentFrom(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity)) }}
+                                                                        {{ radialPercentLabel(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity) }}
                                                                     </span>
                                                                 </div>
                                                             </div>
@@ -532,7 +541,7 @@ defineOptions({ layout: AuthenticatedLayout })
                                                                     :aria-valuenow="percentFrom(payment_detail.current_daily_successful_orders_count, payment_detail.daily_successful_orders_limit)"
                                                                 >
                                                                     <span class="text-[10px] leading-none">
-                                                                        {{ percentLabel(percentFrom(payment_detail.current_daily_successful_orders_count, payment_detail.daily_successful_orders_limit)) }}
+                                                                        {{ radialPercentLabel(payment_detail.current_daily_successful_orders_count, payment_detail.daily_successful_orders_limit) }}
                                                                     </span>
                                                                 </div>
                                                             </div>
@@ -549,7 +558,7 @@ defineOptions({ layout: AuthenticatedLayout })
                                                                     :aria-valuenow="percentFrom(payment_detail.current_daily_limit, payment_detail.daily_limit)"
                                                                 >
                                                                     <span class="text-[10px] leading-none">
-                                                                        {{ percentLabel(percentFrom(payment_detail.current_daily_limit, payment_detail.daily_limit)) }}
+                                                                        {{ radialPercentLabel(payment_detail.current_daily_limit, payment_detail.daily_limit) }}
                                                                     </span>
                                                                 </div>
                                                             </div>
@@ -558,34 +567,10 @@ defineOptions({ layout: AuthenticatedLayout })
                                                     <div class="grid gap-3 text-sm">
                                                         <div class="grid gap-1">
                                                             <div class="text-xs text-base-content/70">Активных сделок</div>
-                                                            <div class="flex justify-end mb-1">
-                                                                <div class="relative text-nowrap">
-                                                                    <span
-                                                                        class="text-xs font-semibold"
-                                                                        :class="{
-                                                                            'text-success': percentFrom(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity) < 40,
-                                                                            'text-warning': percentFrom(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity) >= 40 && percentFrom(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity) < 80,
-                                                                            'text-error': percentFrom(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity) >= 80
-                                                                        }"
-                                                                    >
-                                                                        {{ payment_detail.pending_orders_count }}
-                                                                    </span>
-                                                                    <span class="mx-1 opacity-70">из</span>
-                                                                    <span class="text-xs font-semibold">
-                                                                        {{ payment_detail.max_pending_orders_quantity }}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            <progress
-                                                                class="progress w-full"
-                                                                :class="{
-                                                                    'progress-success': percentFrom(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity) < 40,
-                                                                    'progress-warning': percentFrom(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity) >= 40 && percentFrom(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity) < 80,
-                                                                    'progress-error': percentFrom(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity) >= 80
-                                                                }"
-                                                                :value="percentFrom(payment_detail.pending_orders_count, payment_detail.max_pending_orders_quantity)"
-                                                                max="100"
-                                                            ></progress>
+                                                            <PaymentDetailPendingOrdersLimit
+                                                                :pending_orders_count="payment_detail.pending_orders_count"
+                                                                :max_pending_orders_quantity="payment_detail.max_pending_orders_quantity"
+                                                            />
                                                         </div>
                                                         <div class="grid gap-1">
                                                             <div class="text-xs text-base-content/70">Количество сделок за день</div>
@@ -696,20 +681,23 @@ defineOptions({ layout: AuthenticatedLayout })
                                             ></PaymentDetail>
                                         </div>
                                         <div class="text-sm text-nowrap">
-                                            <span
-                                                class="font-semibold"
-                                                :class="{
-                                                    'text-success': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity < 0.5,
-                                                    'text-warning': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity >= 0.5 && payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity < 0.8,
-                                                    'text-error': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity >= 0.8
-                                                }"
-                                            >
-                                                {{ payment_detail.pending_orders_count }}
-                                            </span>
-                                            <span class="mx-1 opacity-70">из</span>
-                                            <span class="font-semibold">
-                                                {{ payment_detail.max_pending_orders_quantity }}
-                                            </span>
+                                            <template v-if="hasLimit(payment_detail.max_pending_orders_quantity)">
+                                                <span
+                                                    class="font-semibold"
+                                                    :class="{
+                                                        'text-success': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity < 0.5,
+                                                        'text-warning': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity >= 0.5 && payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity < 0.8,
+                                                        'text-error': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity >= 0.8
+                                                    }"
+                                                >
+                                                    {{ payment_detail.pending_orders_count }}
+                                                </span>
+                                                <span class="mx-1 opacity-70">из</span>
+                                                <span class="font-semibold">
+                                                    {{ payment_detail.max_pending_orders_quantity }}
+                                                </span>
+                                            </template>
+                                            <span v-else class="text-base-content/70">Без лимита</span>
                                         </div>
                                         <div class="text-right" v-if="viewStore.isAdminViewMode || isVipUser">
                                             <div class="text-nowrap text-xs"><span class="opacity-70">min:</span> {{ payment_detail.min_order_amount !== null ? payment_detail.min_order_amount : '∞' }}</div>
@@ -750,20 +738,23 @@ defineOptions({ layout: AuthenticatedLayout })
                                         <div class="border-b border-base-content/10 my-2"></div>
                                         <div class="flex items-center justify-between">
                                             <div class="text-nowrap text-xs">
-                                                <span
-                                                    class="font-semibold"
-                                                    :class="{
-                                                        'text-success': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity < 0.5,
-                                                        'text-warning': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity >= 0.5 && payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity < 0.8,
-                                                        'text-error': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity >= 0.8
-                                                    }"
-                                                >
-                                                    {{ payment_detail.pending_orders_count }}
-                                                </span>
-                                                <span class="mx-1 opacity-70">из</span>
-                                                <span class="font-semibold">
-                                                    {{ payment_detail.max_pending_orders_quantity }}
-                                                </span>
+                                                <template v-if="hasLimit(payment_detail.max_pending_orders_quantity)">
+                                                    <span
+                                                        class="font-semibold"
+                                                        :class="{
+                                                            'text-success': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity < 0.5,
+                                                            'text-warning': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity >= 0.5 && payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity < 0.8,
+                                                            'text-error': payment_detail.pending_orders_count / payment_detail.max_pending_orders_quantity >= 0.8
+                                                        }"
+                                                    >
+                                                        {{ payment_detail.pending_orders_count }}
+                                                    </span>
+                                                    <span class="mx-1 opacity-70">из</span>
+                                                    <span class="font-semibold">
+                                                        {{ payment_detail.max_pending_orders_quantity }}
+                                                    </span>
+                                                </template>
+                                                <span v-else class="text-base-content/70">Без лимита</span>
                                             </div>
                                             <div>
                                                 <button

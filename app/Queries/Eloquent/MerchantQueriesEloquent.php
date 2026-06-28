@@ -16,4 +16,8 @@ class MerchantQueriesEloquent implements MerchantQueries
     {
         return Merchant::where('id', $id)->first();
     }
+
+    public function forget(Merchant $merchant): void
+    {
+    }
 }

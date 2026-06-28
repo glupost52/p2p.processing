@@ -22,11 +22,13 @@ class PaymentDetailService implements PaymentDetailServiceContract
                 'detail_type' => $data->detail_type,
                 'initials' => $data->initials,
                 'is_active' => $data->is_active,
-                'daily_limit' => Money::fromPrecision($data->daily_limit, Currency::make($data->currency)),
+                'daily_limit' => $data->daily_limit !== null
+                    ? Money::fromPrecision($data->daily_limit, Currency::make($data->currency))
+                    : null,
                 'current_daily_limit' => Money::fromPrecision(0, Currency::make($data->currency)),
                 'daily_successful_orders_limit' => $data->daily_successful_orders_limit,
                 'current_daily_successful_orders_count' => 0,
-                'max_pending_orders_quantity' => $data->max_pending_orders_quantity,
+                'max_pending_orders_quantity' => $data->max_pending_orders_quantity ?? 0,
                 'min_order_amount' => $data->min_order_amount ? Money::fromPrecision($data->min_order_amount, Currency::make($data->currency)) : null,
                 'max_order_amount' => $data->max_order_amount ? Money::fromPrecision($data->max_order_amount, Currency::make($data->currency)) : null,
                 'vip_min_order_amount_backup' => $data->min_order_amount ? Money::fromPrecision($data->min_order_amount, Currency::make($data->currency)) : null,
@@ -57,14 +59,16 @@ class PaymentDetailService implements PaymentDetailServiceContract
                 'name' => $data->name,
                 'initials' => $data->initials,
                 'is_active' => $data->is_active,
-                'daily_limit' => Money::fromPrecision($data->daily_limit, $paymentDetail->currency),
+                'daily_limit' => $data->daily_limit !== null
+                    ? Money::fromPrecision($data->daily_limit, $paymentDetail->currency)
+                    : null,
                 'daily_successful_orders_limit' => $data->daily_successful_orders_limit,
                 'min_order_amount' => $data->min_order_amount ? Money::fromPrecision($data->min_order_amount, $paymentDetail->currency) : null,
                 'max_order_amount' => $data->max_order_amount ? Money::fromPrecision($data->max_order_amount, $paymentDetail->currency) : null,
                 'vip_min_order_amount_backup' => $data->min_order_amount ? Money::fromPrecision($data->min_order_amount, $paymentDetail->currency) : null,
                 'vip_max_order_amount_backup' => $data->max_order_amount ? Money::fromPrecision($data->max_order_amount, $paymentDetail->currency) : null,
                 'order_interval_minutes' => $data->order_interval_minutes,
-                'max_pending_orders_quantity' => $data->max_pending_orders_quantity,
+                'max_pending_orders_quantity' => $data->max_pending_orders_quantity ?? 0,
                 'user_device_id' => $data->user_device_id,
             ]);
 

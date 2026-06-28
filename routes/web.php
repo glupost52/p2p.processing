@@ -124,6 +124,7 @@ Route::group(['middleware' => ['2fa']], function () {
 
         //statistics
         Route::get('trader/statistics', [\App\Http\Controllers\Trader\StatisticController::class, 'index'])->name('trader.statistics.index');
+        Route::get('/trader/commission-rates', [\App\Http\Controllers\CommissionRateController::class, 'index'])->name('trader.commission-rates.index');
 
         //disputes
         Route::get('/disputes', [\App\Http\Controllers\DisputeController::class, 'index'])->name('disputes.index');
@@ -215,8 +216,11 @@ Route::group(['middleware' => ['2fa']], function () {
         Route::get('/anti-fraud/history', [\App\Http\Controllers\Admin\AntiFraudHistoryController::class, 'index'])->name('anti-fraud.history.index');
         Route::get('/anti-fraud/clients', [\App\Http\Controllers\Admin\AntiFraudClientController::class, 'index'])->name('anti-fraud.clients.index');
         Route::get('/anti-fraud/clients/{merchantClient}/orders', [\App\Http\Controllers\Admin\AntiFraudClientController::class, 'orders'])->name('anti-fraud.clients.orders');
-        Route::get('/profit-calculator', [\App\Http\Controllers\Admin\ProfitCalculatorController::class, 'index'])->name('profit-calculator.index');
-        Route::post('/profit-calculator/calculate', [\App\Http\Controllers\Admin\ProfitCalculatorController::class, 'calculate'])->name('profit-calculator.calculate');
+        // Калькулятор прибыли — временно отключён
+        // Route::get('/profit-calculator', [\App\Http\Controllers\Admin\ProfitCalculatorController::class, 'index'])->name('profit-calculator.index');
+        // Route::post('/profit-calculator/calculate', [\App\Http\Controllers\Admin\ProfitCalculatorController::class, 'calculate'])->name('profit-calculator.calculate');
+        // Route::post('/profit-calculator/resolve-rates', [\App\Http\Controllers\Admin\ProfitCalculatorController::class, 'resolveRates'])->name('profit-calculator.resolve-rates');
+        Route::get('/payment-gateways/options', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'options'])->name('payment-gateways.options');
 
         Route::get('/enabled-cards', [\App\Http\Controllers\Admin\EnabledCardsController::class, 'index'])->name('enabled-cards.index');
 
@@ -239,6 +243,10 @@ Route::group(['middleware' => ['2fa']], function () {
         Route::get('/payment-gateways/{paymentGateway}/edit-data', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'editData'])->name('payment-gateways.edit-data');
         Route::patch('/payment-gateways/bulk-settings', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'bulkUpdate'])->name('payment-gateways.bulk-settings.update');
         Route::patch('/payment-gateways/{paymentGateway}', [\App\Http\Controllers\Admin\PaymentGatewayController::class, 'update'])->name('payment-gateways.update');
+        Route::get('/payment-gateways/{paymentGateway}/commission-tiers', [\App\Http\Controllers\Admin\PaymentGatewayCommissionTierController::class, 'index'])->name('payment-gateways.commission-tiers.index');
+        Route::put('/payment-gateways/{paymentGateway}/commission-tiers', [\App\Http\Controllers\Admin\PaymentGatewayCommissionTierController::class, 'sync'])->name('payment-gateways.commission-tiers.sync');
+        Route::get('/users/{user}/commission-rates', [\App\Http\Controllers\Admin\UserCommissionRateController::class, 'index'])->name('users.commission-rates.index');
+        Route::put('/users/{user}/commission-rates', [\App\Http\Controllers\Admin\UserCommissionRateController::class, 'sync'])->name('users.commission-rates.sync');
         Route::get('/orders', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('orders.index');
         Route::get('/payouts', [\App\Http\Controllers\Admin\PayoutController::class, 'index'])->name('payouts.index');
         Route::patch('/payouts/{payout}/status', [\App\Http\Controllers\Admin\PayoutController::class, 'updateStatus'])->name('payouts.status.update');

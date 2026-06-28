@@ -5,6 +5,7 @@ namespace App\Services\Payout;
 use App\Contracts\PayoutServiceContract;
 use App\DTO\Payout\PayoutCreateDTO;
 use App\Enums\BalanceType;
+use App\Enums\CommissionOperationType as PayoutCommissionOperationType;
 use App\Enums\MarketEnum;
 use App\Enums\PayoutOperationType;
 use App\Enums\PayoutStatus;
@@ -57,7 +58,12 @@ class PayoutService implements PayoutServiceContract
                 throw PayoutException::marketPriceUnavailable();
             }
 
-            $payoutSettings = $this->resolvePayoutSettings($data->paymentGateway, $currency);
+            $payoutSettings = $this->resolvePayoutCommissionRates(
+                gateway: $data->paymentGateway,
+                currency: $currency,
+                amount: $data->amountFiat,
+                merchant: $data->merchant,
+            );
             $totalRate = $payoutSettings['total_rate'];
             $traderRate = $payoutSettings['trader_rate'];
             $teamLeaderRate = 0.0;
@@ -233,6 +239,7 @@ class PayoutService implements PayoutServiceContract
                 'taken_at' => now(),
             ]);
 
+            $this->applyTraderCommissionRates($payout, $lockedTrader);
             $this->applyTeamLeaderCalculation($payout, $lockedTrader);
 
             $this->logOperation($payout, PayoutOperationType::MARK_TAKEN, null, [
@@ -775,7 +782,12 @@ class PayoutService implements PayoutServiceContract
     private function calculateExpiresAt(Payout $payout): ?Carbon
     {
         $currency = $payout->amount_fiat?->getCurrency() ?? Currency::RUB();
-        $settings = $this->resolvePayoutSettings($payout->paymentGateway, $currency);
+        $settings = $this->resolvePayoutCommissionRates(
+            gateway: $payout->paymentGateway,
+            currency: $currency,
+            amount: $payout->amount_fiat,
+            merchant: $payout->merchant,
+        );
         $reservationMinutes = $settings['reservation_minutes'];
 
         if ($reservationMinutes <= 0) {
@@ -788,9 +800,42 @@ class PayoutService implements PayoutServiceContract
     /**
      * @return array{total_rate: float, trader_rate: float, reservation_minutes: int}
      */
-    private function resolvePayoutSettings(?PaymentGateway $gateway, Currency $currency): array
-    {
-        if ($gateway) {
+    private function resolvePayoutCommissionRates(
+        ?PaymentGateway $gateway,
+        Currency $currency,
+        ?Money $amount = null,
+        ?Merchant $merchant = null,
+        ?User $trader = null,
+    ): array {
+        if ($gateway !== null && $amount !== null) {
+            $gateway->loadMissing('commissionTiers');
+
+            if ($trader !== null) {
+                $trader->loadMissing([
+                    'traderCommissionRates' => function ($query) use ($gateway) {
+                        $query->where('payment_gateway_id', $gateway->id)
+                            ->where('operation_type', PayoutCommissionOperationType::PAYOUT->value)
+                            ->where('is_active', true);
+                    },
+                ]);
+            }
+
+            $resolvedRates = services()->commissionRate()->resolve(
+                paymentGateway: $gateway,
+                amount: $amount,
+                operationType: PayoutCommissionOperationType::PAYOUT,
+                merchant: $merchant,
+                trader: $trader,
+            );
+
+            return [
+                'total_rate' => $resolvedRates->totalServiceCommissionRate,
+                'trader_rate' => $resolvedRates->traderCommissionRate,
+                'reservation_minutes' => (int) ($gateway->reservation_time_for_payouts ?? 30),
+            ];
+        }
+
+        if ($gateway !== null) {
             return [
                 'total_rate' => (float) $gateway->total_service_commission_rate_for_payouts,
                 'trader_rate' => (float) $gateway->trader_commission_rate_for_payouts,
@@ -805,6 +850,28 @@ class PayoutService implements PayoutServiceContract
             'trader_rate' => (float) ($settings['trader_commission_rate'] ?? 0),
             'reservation_minutes' => (int) ($settings['reservation_time_for_payouts'] ?? 0),
         ];
+    }
+
+    private function applyTraderCommissionRates(Payout $payout, User $trader): void
+    {
+        if (! $payout->amount_fiat || ! $payout->paymentGateway) {
+            return;
+        }
+
+        $payout->loadMissing('merchant', 'paymentGateway.commissionTiers');
+
+        $rates = $this->resolvePayoutCommissionRates(
+            gateway: $payout->paymentGateway,
+            currency: $payout->amount_fiat->getCurrency(),
+            amount: $payout->amount_fiat,
+            merchant: $payout->merchant,
+            trader: $trader,
+        );
+
+        $payout->update([
+            'trader_commission_rate' => $rates['trader_rate'],
+            'total_commission_rate' => $rates['total_rate'],
+        ]);
     }
 
     private function applyTeamLeaderCalculation(Payout $payout, User $trader): void

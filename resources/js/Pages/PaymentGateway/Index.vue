@@ -85,7 +85,10 @@ defineOptions({ layout: AuthenticatedLayout })
                                         Лимиты для сделок
                                     </th>
                                     <th scope="col" class="px-6 py-3 text-nowrap">
-                                        Комиссия %
+                                        Комиссия % (сделки)
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-nowrap">
+                                        Комиссия % (выплаты)
                                     </th>
                                     <th scope="col" class="px-6 py-3">
                                         Статус
@@ -114,7 +117,10 @@ defineOptions({ layout: AuthenticatedLayout })
                                         <div class="text-nowrap">Min {{ payment_gateway.min_limit }} {{ payment_gateway.currency.toUpperCase() }}</div>
                                     </td>
                                     <td class="px-6 py-3">
-                                        <div class="text-nowrap">{{ payment_gateway.trader_commission_rate_for_orders }}% / {{ payment_gateway.total_service_commission_rate_for_orders }}%</div>
+                                        <div class="text-nowrap">{{ payment_gateway.commission_orders_tiers_label }}</div>
+                                    </td>
+                                    <td class="px-6 py-3">
+                                        <div class="text-nowrap">{{ payment_gateway.commission_payouts_tiers_label }}</div>
                                     </td>
                                     <td class="px-6 py-3 text-nowrap">
                                         <IsActiveStatus :is_active="payment_gateway.is_active"></IsActiveStatus>
@@ -178,7 +184,7 @@ defineOptions({ layout: AuthenticatedLayout })
                                         </div>
                                         <div class="border-b border-base-content/10 my-2"></div>
                                         <div class="flex items-center justify-between text-sm">
-                                            <div class="text-right text-xs text-nowrap">{{ payment_gateway.trader_commission_rate_for_orders }}% / {{ payment_gateway.total_service_commission_rate_for_orders }}%</div>
+                                            <div class="text-right text-xs text-nowrap">{{ payment_gateway.commission_orders_tiers_label }}</div>
                                             <div>
                                                 <div class="text-nowrap text-xs"><span class="text-base-content/70">Max</span> {{ payment_gateway.max_limit }} {{ payment_gateway.currency.toUpperCase() }}</div>
                                                 <div class="text-nowrap text-xs"><span class="text-base-content/70">Min</span> {{ payment_gateway.min_limit }} {{ payment_gateway.currency.toUpperCase() }}</div>

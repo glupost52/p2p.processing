@@ -11,6 +11,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    paymentGateways: {
+        type: Array,
+        default: () => [],
+    },
     defaults: {
         type: Object,
         default: () => ({}),
@@ -28,10 +32,20 @@ const form = ref({
     teamleader_split_from_trader_percent: props.defaults.teamleader_split_from_trader_percent ?? 0,
 });
 
+const resolveForm = ref({
+    payment_gateway_id: props.paymentGateways[0]?.id ?? '',
+    merchant_id: '',
+    trader_id: '',
+});
+
 const errors = ref({});
+const resolveErrors = ref({});
 const processing = ref(false);
+const resolvingRates = ref(false);
 const result = ref(null);
 const serverError = ref(null);
+const resolveError = ref(null);
+const resolvedRatesPreview = ref(null);
 
 const logicOptions = [
     { value: 'in_body', label: 'IN_BODY (сделки)' },
@@ -39,6 +53,7 @@ const logicOptions = [
 ];
 
 const isPayout = computed(() => form.value.logic === 'out_body');
+const resolveOperationType = computed(() => (isPayout.value ? 'payout' : 'order'));
 const amountLabel = computed(() => (isPayout.value ? 'Сумма (фиат)' : 'Сумма'));
 const exchangeLabel = computed(() => (isPayout.value ? 'Цена конверсии' : 'Курс'));
 const merchantLabel = computed(() => {
@@ -177,6 +192,45 @@ const resetForm = () => {
     errors.value = {};
     serverError.value = null;
     result.value = null;
+    resolvedRatesPreview.value = null;
+    resolveError.value = null;
+};
+
+const resolveRates = async () => {
+    resolvingRates.value = true;
+    resolveErrors.value = {};
+    resolveError.value = null;
+
+    try {
+        const payload = {
+            operation_type: resolveOperationType.value,
+            amount_currency: form.value.amount_currency,
+            amount: form.value.amount,
+            payment_gateway_id: resolveForm.value.payment_gateway_id,
+            merchant_id: resolveForm.value.merchant_id || null,
+            trader_id: resolveForm.value.trader_id || null,
+        };
+
+        const response = await axios.post(route('admin.profit-calculator.resolve-rates'), payload);
+
+        if (response?.data?.success) {
+            resolvedRatesPreview.value = response.data.data;
+            form.value.total_commission_rate = response.data.data.total_commission_rate;
+            form.value.trader_commission_rate = response.data.data.trader_commission_rate;
+        } else {
+            resolveError.value = response?.data?.message ?? 'Не удалось получить ставки.';
+        }
+    } catch (error) {
+        const response = error.response;
+        if (response?.status === 422) {
+            resolveErrors.value = response?.data?.errors ?? {};
+            resolveError.value = response?.data?.message ?? null;
+        } else {
+            resolveError.value = 'Не удалось получить ставки.';
+        }
+    } finally {
+        resolvingRates.value = false;
+    }
 };
 </script>
 
@@ -257,6 +311,61 @@ const resetForm = () => {
                                     <span class="label-text-alt text-error">{{ getError('exchange_rate') }}</span>
                                 </div>
                             </label>
+                        </div>
+
+                        <div class="rounded-box border border-base-300 p-4 space-y-4">
+                            <div class="text-sm font-medium">Подставить ставки из tier'ов</div>
+                            <div class="grid grid-cols-1 gap-4">
+                                <label class="form-control w-full">
+                                    <div class="label">
+                                        <span class="label-text">Платежный метод</span>
+                                    </div>
+                                    <select v-model="resolveForm.payment_gateway_id" class="select select-bordered select-sm w-full">
+                                        <option v-for="gateway in paymentGateways" :key="gateway.id" :value="gateway.id">
+                                            {{ gateway.name }} ({{ gateway.currency }})
+                                        </option>
+                                    </select>
+                                </label>
+                                <label class="form-control w-full">
+                                    <div class="label">
+                                        <span class="label-text">ID мерчанта (опционально)</span>
+                                    </div>
+                                    <input
+                                        v-model="resolveForm.merchant_id"
+                                        type="number"
+                                        class="input input-bordered input-sm w-full"
+                                    />
+                                </label>
+                                <label class="form-control w-full">
+                                    <div class="label">
+                                        <span class="label-text">ID трейдера (опционально)</span>
+                                    </div>
+                                    <input
+                                        v-model="resolveForm.trader_id"
+                                        type="number"
+                                        class="input input-bordered input-sm w-full"
+                                    />
+                                </label>
+                            </div>
+                            <button
+                                type="button"
+                                class="btn btn-outline btn-sm"
+                                :class="{ loading: resolvingRates }"
+                                :disabled="resolvingRates || !resolveForm.payment_gateway_id"
+                                @click="resolveRates"
+                            >
+                                Подставить ставки
+                            </button>
+                            <div v-if="resolvedRatesPreview" class="text-xs text-base-content/70">
+                                Total: {{ resolvedRatesPreview.total_commission_rate }}%,
+                                Trader: {{ resolvedRatesPreview.trader_commission_rate }}%
+                                <span v-if="resolvedRatesPreview.prime_time_bonus_rate > 0">
+                                    (prime +{{ resolvedRatesPreview.prime_time_bonus_rate }}%)
+                                </span>
+                            </div>
+                            <div v-if="resolveError" class="alert alert-warning py-2">
+                                <span class="text-sm">{{ resolveError }}</span>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-1 gap-4">

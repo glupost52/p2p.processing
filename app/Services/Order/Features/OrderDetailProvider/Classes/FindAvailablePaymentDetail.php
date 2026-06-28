@@ -2,6 +2,7 @@
 
 namespace App\Services\Order\Features\OrderDetailProvider\Classes;
 
+use App\Enums\CommissionOperationType;
 use App\Enums\DetailType;
 use App\Enums\DisputeStatus;
 use App\Enums\MarketEnum;
@@ -21,13 +22,10 @@ use App\Services\Order\Features\OrderDetailProvider\Values\Gateway;
 use App\Services\Order\Features\OrderDetailProvider\Values\Trader;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Carbon;
 
 class FindAvailablePaymentDetail
 {
     protected PrimeTimeSettings $primeTimeBonus;
-    protected Carbon $start;
-    protected Carbon $end;
     protected Money $exchangePrice;
     protected array $inactiveGatewayIds;
     protected int $maxPendingDisputes;
@@ -47,8 +45,6 @@ class FindAvailablePaymentDetail
         }
 
         $this->primeTimeBonus = services()->settings()->getPrimeTimeBonus();
-        $this->start = Carbon::createFromTimeString($this->primeTimeBonus->starts);
-        $this->end = Carbon::createFromTimeString($this->primeTimeBonus->ends);
         $this->exchangePrice = services()->market()->getSellPrice($this->amount->getCurrency(), $this->market);
 
         if (! $this->exchangePrice->greaterThanZero()) {
@@ -76,18 +72,25 @@ class FindAvailablePaymentDetail
         ]);
 
         $randomGatewayID = $paymentDetail->paymentGateways->pluck('id')->random();
-        $paymentGateway = PaymentGateway::find($randomGatewayID);
+        $paymentGateway = PaymentGateway::query()
+            ->with('commissionTiers')
+            ->find($randomGatewayID);
         $user = User::query()
             ->with(['wallet' => function (HasOne $query) {
                 $query->select(['user_id', 'trust_balance', 'currency']);
             }])
             ->with([
                 'teamLeader:id,email,referral_commission_percentage,team_leader_split_from_service_percent',
+                'traderCommissionRates' => function ($query) use ($paymentGateway) {
+                    $query->where('payment_gateway_id', $paymentGateway->id)
+                        ->where('operation_type', CommissionOperationType::ORDER->value)
+                        ->where('is_active', true);
+                },
             ])
             ->where('id', $paymentDetail->user_id)
             ->first();
 
-        $gateway = (new GatewayFactory($this->merchant))->make($paymentGateway);
+        $gateway = (new GatewayFactory($this->merchant, $this->primeTimeBonus))->make($paymentGateway, $this->amount, $user);
         $trader = (new TraderFactory())->make($user);
 
         return $this->makeDetail($paymentDetail, $gateway, $trader);
@@ -95,13 +98,7 @@ class FindAvailablePaymentDetail
 
     protected function makeDetail(PaymentDetail $paymentDetail, Gateway $gateway, Trader $trader): Detail
     {
-        //Trader Commission Rate Prime Time
         $traderCommissionRate = $gateway->traderCommissionRate;
-
-        if (now()->between($this->start, $this->end)) {
-            $traderCommissionRate = round($traderCommissionRate + $this->primeTimeBonus->rate, 2);
-        }
-
         $teamLeaderCommissionRate = $trader->teamLeaderCommissionRate;
         //Расчёт прибыли
         $profits = services()->profit()->calculateInBody(
@@ -165,7 +162,11 @@ class FindAvailablePaymentDetail
                         $subQuery->where('can_work_without_device', true);
                     });
             })
-            ->whereRaw('(daily_limit - current_daily_limit) >= ?', [$this->amount->toUnitsInt()])
+            ->where(function (Builder $query) {
+                $query->whereNull('daily_limit')
+                    ->orWhere('daily_limit', 0)
+                    ->orWhereRaw('(daily_limit - current_daily_limit) >= ?', [$this->amount->toUnitsInt()]);
+            })
             ->where(function (Builder $query) {
                 $query->whereNull('daily_successful_orders_limit')
                     ->orWhereColumn('current_daily_successful_orders_count', '<', 'daily_successful_orders_limit');

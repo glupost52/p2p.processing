@@ -18,6 +18,10 @@ class DailyLimit
         Transaction::run(function () use ($paymentDetailID, $amount) {
             $paymentDetail = PaymentDetail::where('id', $paymentDetailID)->lockForUpdate()->first();
 
+            if ($paymentDetail->daily_limit === null) {
+                return;
+            }
+
             $current_daily_limit = $paymentDetail
                 ->current_daily_limit
                 ->add($amount);
@@ -36,6 +40,10 @@ class DailyLimit
         
         Transaction::run(function () use ($paymentDetailID, $amount) {
             $paymentDetail = PaymentDetail::where('id', $paymentDetailID)->lockForUpdate()->first();
+
+            if ($paymentDetail->daily_limit === null) {
+                return;
+            }
 
             $current_daily_limit = $paymentDetail
                 ->current_daily_limit

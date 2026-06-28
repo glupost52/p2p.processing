@@ -11,6 +11,7 @@ import DateTime from "@/Components/DateTime.vue";
 import UserNotesModal from "@/Modals/User/UserNotesModal.vue";
 import UserCreateModal from "@/Modals/User/UserCreateModal.vue";
 import UserEditModal from "@/Modals/User/UserEditModal.vue";
+import UserCommissionRatesModal from "@/Modals/User/UserCommissionRatesModal.vue";
 import UserTempVipHistoryModal from "@/Modals/User/UserTempVipHistoryModal.vue";
 import {useModalStore} from "@/store/modal.js";
 import DropdownFilter from "@/Components/Filters/Pertials/DropdownFilter.vue";
@@ -78,6 +79,16 @@ const openUserEditModal = (user) => {
     modalStore.openUserEditModal({ user });
 };
 
+const openUserCommissionRatesModal = (user) => {
+    modalStore.openUserCommissionRatesModal({ user });
+};
+
+const openCommissionRatesPage = (user) => {
+    router.visit(route('trader.commission-rates.index', { user_id: user.id }));
+};
+
+const isTraderUser = (user) => user.role?.name === 'Trader';
+
 const openUserTempVipHistoryModal = (user) => {
     modalStore.openUserTempVipHistoryModal({ user });
 };
@@ -92,6 +103,7 @@ defineOptions({ layout: AuthenticatedLayout })
         <UserNotesModal />
         <UserCreateModal />
         <UserEditModal />
+        <UserCommissionRatesModal />
         <UserTempVipHistoryModal />
 
         <MainTableSection
@@ -259,6 +271,12 @@ defineOptions({ layout: AuthenticatedLayout })
                                             <TableAction @click="openUserEditModal(user)">
                                                 Редактировать
                                             </TableAction>
+                                            <TableAction v-if="isTraderUser(user)" @click="openCommissionRatesPage(user)">
+                                                Просмотр ставок
+                                            </TableAction>
+                                            <TableAction v-if="isTraderUser(user)" @click="openUserCommissionRatesModal(user)">
+                                                Настроить ставки
+                                            </TableAction>
                                             <TableAction @click="openUserTempVipHistoryModal(user)">
                                                 История VIP
                                             </TableAction>
@@ -384,6 +402,12 @@ defineOptions({ layout: AuthenticatedLayout })
                                                     <TableAction @click="openUserEditModal(user)">
                                                         Редактировать
                                                     </TableAction>
+                                                    <TableAction v-if="isTraderUser(user)" @click="openCommissionRatesPage(user)">
+                                                        Просмотр ставок
+                                                    </TableAction>
+                                                    <TableAction v-if="isTraderUser(user)" @click="openUserCommissionRatesModal(user)">
+                                                        Настроить ставки
+                                                    </TableAction>
                                                     <TableAction @click="openUserTempVipHistoryModal(user)">
                                                         История VIP
                                                     </TableAction>
@@ -481,6 +505,12 @@ defineOptions({ layout: AuthenticatedLayout })
                                                 </TableAction>
                                                 <TableAction @click="openUserEditModal(user)">
                                                     Редактировать
+                                                </TableAction>
+                                                <TableAction v-if="isTraderUser(user)" @click="openCommissionRatesPage(user)">
+                                                    Просмотр ставок
+                                                </TableAction>
+                                                <TableAction v-if="isTraderUser(user)" @click="openUserCommissionRatesModal(user)">
+                                                    Настроить ставки
                                                 </TableAction>
                                                 <TableAction @click="openUserTempVipHistoryModal(user)">
                                                     История VIP

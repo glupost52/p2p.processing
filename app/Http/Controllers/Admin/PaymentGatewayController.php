@@ -49,6 +49,26 @@ class PaymentGatewayController extends Controller
         ]);
     }
 
+    public function options()
+    {
+        $paymentGateways = PaymentGateway::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'currency'])
+            ->map(fn (PaymentGateway $gateway) => [
+                'id' => $gateway->id,
+                'name' => $gateway->name,
+                'currency' => strtoupper($gateway->currency instanceof Currency ? $gateway->currency->getCode() : (string) $gateway->currency),
+            ])
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'paymentGateways' => $paymentGateways,
+            ],
+        ]);
+    }
+
     public function bulkSettingsData()
     {
         $currencies = Currency::getAll()->transform(function ($currency) {
@@ -103,6 +123,8 @@ class PaymentGatewayController extends Controller
                 'code' => $detailType,
             ];
         }
+
+        $paymentGateway->load('commissionTiers');
 
         $paymentGateway = PaymentGatewayResource::make($paymentGateway)->resolve();
 

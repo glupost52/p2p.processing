@@ -81,7 +81,7 @@ class StoreRequest extends FormRequest
             'detail_type' => ['required', Rule::in(DetailType::values())],
             'initials' => ['required', 'string', 'min:3', 'max:40'],
             'is_active' => ['required', 'boolean'],
-            'daily_limit' => ['required', 'integer', 'min:1', 'max:100000000'],
+            'daily_limit' => ['nullable', 'integer', 'min:0', 'max:100000000'],
             'daily_successful_orders_limit' => ['nullable', 'integer', 'min:1', 'max:100000000'],
             'min_order_amount' => ['nullable', 'integer', 'min:0'],
             'max_order_amount' => ['nullable', 'integer', 'min:0', 'gte:min_order_amount'],
@@ -97,7 +97,7 @@ class StoreRequest extends FormRequest
                     }
                 }
             ],
-            'max_pending_orders_quantity' => ['required', 'integer', 'min:1', 'max:100000000'],
+            'max_pending_orders_quantity' => ['nullable', 'integer', 'min:0', 'max:100000000'],
             'order_interval_minutes' => ['nullable', 'integer', 'min:1'],
             'user_device_id' => [
                 Rule::requiredIf($this->deviceIsRequired()),
@@ -117,6 +117,7 @@ class StoreRequest extends FormRequest
             'daily_successful_orders_limit' => __('дневной лимит по количеству сделок'),
             'min_order_amount' => __('минимальная сумма сделки'),
             'max_order_amount' => __('максимальная сумма сделки'),
+            'max_pending_orders_quantity' => __('максимальное количество активных сделок'),
             'order_interval_minutes' => __('интервал между сделками'),
             'payment_gateway_ids' => __('платежные методы'),
             'payment_gateway_ids.*' => __('платежный метод'),
@@ -126,15 +127,24 @@ class StoreRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $detail = $this->detail;
+        $dailyLimit = $this->daily_limit;
         $dailySuccessfulOrdersLimit = $this->daily_successful_orders_limit;
+        $maxPendingOrdersQuantity = $this->max_pending_orders_quantity;
         $minOrderAmount = $this->min_order_amount;
         $maxOrderAmount = $this->max_order_amount;
+        $orderIntervalMinutes = $this->order_interval_minutes;
 
         if ($this->detail_type !== DetailType::NSPK->value) {
             $detail = preg_replace('~\D+~', '', $detail);
         }
+        if ($dailyLimit === '' || $dailyLimit === null) {
+            $dailyLimit = null;
+        }
         if ($dailySuccessfulOrdersLimit === '' || $dailySuccessfulOrdersLimit === null) {
             $dailySuccessfulOrdersLimit = null;
+        }
+        if ($maxPendingOrdersQuantity === '' || $maxPendingOrdersQuantity === null) {
+            $maxPendingOrdersQuantity = null;
         }
         if ($minOrderAmount === '' || $minOrderAmount === null) {
             $minOrderAmount = null;
@@ -142,13 +152,19 @@ class StoreRequest extends FormRequest
         if ($maxOrderAmount === '' || $maxOrderAmount === null) {
             $maxOrderAmount = null;
         }
+        if ($orderIntervalMinutes === '' || $orderIntervalMinutes === null) {
+            $orderIntervalMinutes = null;
+        }
 
         $this->merge([
             'detail' => $detail,
             'currency' => strtolower($this->currency),
+            'daily_limit' => $dailyLimit,
             'daily_successful_orders_limit' => $dailySuccessfulOrdersLimit,
+            'max_pending_orders_quantity' => $maxPendingOrdersQuantity,
             'min_order_amount' => $minOrderAmount,
             'max_order_amount' => $maxOrderAmount,
+            'order_interval_minutes' => $orderIntervalMinutes,
         ]);
     }
 

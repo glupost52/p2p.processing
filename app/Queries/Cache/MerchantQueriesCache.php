@@ -56,4 +56,15 @@ class MerchantQueriesCache implements MerchantQueries
 
         return $this->merchantByID[$id];
     }
+
+    public function forget(Merchant $merchant): void
+    {
+        Cache::forget("get_merchant_by_id_{$merchant->id}");
+        Cache::forget("get_merchant_by_uuid_{$merchant->uuid}");
+
+        unset(
+            $this->merchantByID[$merchant->id],
+            $this->merchantByUUID[$merchant->uuid],
+        );
+    }
 }
