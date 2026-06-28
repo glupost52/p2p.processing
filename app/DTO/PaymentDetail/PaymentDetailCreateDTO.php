@@ -14,12 +14,12 @@ readonly class PaymentDetailCreateDTO extends BaseDTO
         public DetailType $detail_type,
         public string $initials,
         public bool $is_active,
-        public int $daily_limit,
+        public ?int $daily_limit,
         public ?int $daily_successful_orders_limit,
         public string $currency,
         /** @var array<int> */
         public array $payment_gateway_ids,
-        public int $max_pending_orders_quantity,
+        public ?int $max_pending_orders_quantity,
         public ?int $order_interval_minutes,
         public ?int $user_device_id,
         public int $user_id,
@@ -35,20 +35,25 @@ readonly class PaymentDetailCreateDTO extends BaseDTO
             detail_type: DetailType::from($data['detail_type']),
             initials: $data['initials'],
             is_active: (bool) $data['is_active'],
-            daily_limit: (int) $data['daily_limit'],
-            daily_successful_orders_limit: isset($data['daily_successful_orders_limit'])
-                ? (int) $data['daily_successful_orders_limit']
-                : null,
+            daily_limit: self::nullableInt($data['daily_limit'] ?? null),
+            daily_successful_orders_limit: self::nullableInt($data['daily_successful_orders_limit'] ?? null),
             currency: strtolower($data['currency']),
             payment_gateway_ids: array_map('intval', $data['payment_gateway_ids']),
-            max_pending_orders_quantity: (int) $data['max_pending_orders_quantity'],
-            order_interval_minutes: isset($data['order_interval_minutes']) ? (int) $data['order_interval_minutes'] : null,
+            max_pending_orders_quantity: self::nullableInt($data['max_pending_orders_quantity'] ?? null),
+            order_interval_minutes: self::nullableInt($data['order_interval_minutes'] ?? null),
             user_device_id: isset($data['user_device_id']) ? (int) $data['user_device_id'] : null,
             user_id: (int) $data['user_id'],
-            min_order_amount: isset($data['min_order_amount']) ? (int) $data['min_order_amount'] : null,
-            max_order_amount: isset($data['max_order_amount']) ? (int) $data['max_order_amount'] : null,
+            min_order_amount: self::nullableInt($data['min_order_amount'] ?? null),
+            max_order_amount: self::nullableInt($data['max_order_amount'] ?? null),
         );
     }
+
+    private static function nullableInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (int) $value;
+    }
 }
-
-

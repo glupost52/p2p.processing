@@ -2,6 +2,7 @@
 import InputLabel from "@/Components/InputLabel.vue";
 import InputHelper from "@/Components/InputHelper.vue";
 import TextInput from "@/Components/TextInput.vue";
+import CommissionTiersEditor from "@/Components/Commission/CommissionTiersEditor.vue";
 import {computed, ref, watch} from "vue";
 import GatewayLogo from "@/Components/GatewayLogo.vue";
 
@@ -41,6 +42,7 @@ const deepClone = (value, fallback) => {
 const gatewayEditMode = ref(false);
 const processing = ref(false);
 const localGatewaySettings = ref(deepClone(props.gatewaySettings, {}));
+const expandedTierGatewayIds = ref([]);
 const macros = ref({
     commission: null,
     reservation_time: null,
@@ -80,6 +82,14 @@ const getSetting = (gatewayId, settingName) => {
     return gateway[settingName] ?? null;
 };
 
+const getCommissionMode = (gatewayId) => {
+    return getSetting(gatewayId, 'commission_mode') ?? 'inherit';
+};
+
+const getMerchantTiers = (gatewayId) => {
+    return getSetting(gatewayId, 'custom_gateway_commission_tiers') ?? [];
+};
+
 const normalizeValue = (value, min = 1, max = 1000) => {
     if (value === "" || value === null || value === undefined) {
         return null;
@@ -115,6 +125,71 @@ const setSetting = (gatewayId, settingName, value) => {
     localGatewaySettings.value = settings;
 };
 
+const setCommissionMode = (gatewayId, mode) => {
+    const settings = {...localGatewaySettings.value};
+
+    if (!settings[gatewayId]) {
+        settings[gatewayId] = {};
+    }
+
+    settings[gatewayId].commission_mode = mode;
+
+    if (mode === 'inherit') {
+        delete settings[gatewayId].custom_gateway_commission;
+        delete settings[gatewayId].custom_gateway_commission_tiers;
+    }
+
+    if (mode === 'flat') {
+        delete settings[gatewayId].custom_gateway_commission_tiers;
+    }
+
+    if (mode === 'tiered') {
+        delete settings[gatewayId].custom_gateway_commission;
+        if (!Array.isArray(settings[gatewayId].custom_gateway_commission_tiers)) {
+            settings[gatewayId].custom_gateway_commission_tiers = [];
+        }
+    }
+
+    localGatewaySettings.value = settings;
+};
+
+const setMerchantTiers = (gatewayId, tiers) => {
+    setSetting(gatewayId, 'custom_gateway_commission_tiers', tiers);
+};
+
+const toggleTierPanel = (gatewayId) => {
+    if (expandedTierGatewayIds.value.includes(gatewayId)) {
+        expandedTierGatewayIds.value = expandedTierGatewayIds.value.filter((id) => id !== gatewayId);
+        return;
+    }
+
+    expandedTierGatewayIds.value = [...expandedTierGatewayIds.value, gatewayId];
+};
+
+const getDisplayedCommission = (gateway) => {
+    const mode = getCommissionMode(gateway.id);
+
+    if (mode === 'tiered') {
+        const tiers = getMerchantTiers(gateway.id);
+        if (!tiers.length) {
+            return `${gateway.total_service_commission_rate_for_orders}%`;
+        }
+
+        const totals = tiers.map((tier) => Number(tier.total_service_commission_rate)).filter((value) => !Number.isNaN(value));
+        if (!totals.length) {
+            return 'По сумме';
+        }
+
+        return `${Math.min(...totals)}–${Math.max(...totals)}%`;
+    }
+
+    if (mode === 'flat' || getSetting(gateway.id, 'custom_gateway_commission') > 0 || getSetting(gateway.id, 'custom_gateway_commission') === 0) {
+        return `${getSetting(gateway.id, 'custom_gateway_commission')}%`;
+    }
+
+    return `${gateway.total_service_commission_rate_for_orders}%`;
+};
+
 const submitGatewaySettings = () => {
     if (processing.value) {
         return;
@@ -137,6 +212,7 @@ const submitGatewaySettings = () => {
 const applyMacros = (type) => {
     if (type === "commission") {
         paymentGatewayList.value.forEach((gateway) => {
+            setCommissionMode(gateway.id, 'flat');
             setSetting(gateway.id, 'custom_gateway_commission', macros.value.commission);
         });
     }
@@ -197,7 +273,7 @@ const applyMacros = (type) => {
                             />
 
                             <InputHelper
-                                model-value="Установит у всех методов указанную комиссию."
+                                model-value="Установит у всех методов единую flat-комиссию."
                             ></InputHelper>
                         </div>
                         <div>
@@ -248,45 +324,30 @@ const applyMacros = (type) => {
                             <div>
                                 <GatewayLogo :img_path="gateway.logo_path" class="w-8 h-8 text-base-content/70"/>
                             </div>
-                            <div :class="getSetting(gateway.id, 'custom_gateway_commission') > 0 ||
-                                          getSetting(gateway.id, 'custom_gateway_commission') === 0 ? 'w-20' : 'w-25'">
-                                <div
-                                    class="truncate"
-                                    :class="
-                                        getSetting(gateway.id, 'active')
-                                        ? 'text-base-content'
-                                        : 'text-base-content'
-                                      "
-                                >
+                            <div class="min-w-0 flex-1">
+                                <div class="truncate">
                                     {{ gateway.original_name }}
                                 </div>
-                            </div>
-                            <div
-                                class="text-base-content text-xl flex justify-between items-end gap-2"
-                                :class="
-                                        getSetting(gateway.id, 'active')
-                                        ? 'text-base-content'
-                                        : 'text-base-content'
-                                    "
-                                 >
-                                <div class="flex items-center gap-2">
-                                    <template
-                                        v-if="
-                                          getSetting(gateway.id, 'custom_gateway_commission') > 0 ||
-                                          getSetting(gateway.id, 'custom_gateway_commission') === 0
-                                        "
-                                    >
-                                        <div class="text-sm text-error line-through">
-                                            {{ gateway.total_service_commission_rate_for_orders }}%
-                                        </div>
-                                        <div class="text-base-content">
-                                            {{ getSetting(gateway.id, "custom_gateway_commission") }}%
-                                        </div>
-                                    </template>
-                                    <template v-else>
-                                        <div>{{ gateway.total_service_commission_rate_for_orders }}%</div>
-                                    </template>
+                                <div v-if="getCommissionMode(gateway.id) === 'tiered'" class="text-[10px] uppercase text-primary">
+                                    По сумме
                                 </div>
+                            </div>
+                            <div class="text-base-content text-sm flex items-center gap-2">
+                                <template
+                                    v-if="
+                                      getCommissionMode(gateway.id) === 'flat' ||
+                                      getSetting(gateway.id, 'custom_gateway_commission') > 0 ||
+                                      getSetting(gateway.id, 'custom_gateway_commission') === 0
+                                    "
+                                >
+                                    <div class="text-xs text-error line-through">
+                                        {{ gateway.total_service_commission_rate_for_orders }}%
+                                    </div>
+                                    <div>{{ getDisplayedCommission(gateway) }}</div>
+                                </template>
+                                <template v-else>
+                                    <div>{{ getDisplayedCommission(gateway) }}</div>
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -306,15 +367,46 @@ const applyMacros = (type) => {
                     </div>
                     <div
                         v-if="isAdmin && gatewayEditMode === true"
-                        class="py-2 px-4 flex justify-between items-center"
+                        class="py-2 px-4 space-y-2"
                     >
-                        <span class="text-xs text-base-content/70">Комиссия</span>
-                        <input
-                            type="text"
-                            class="input input-bordered input-sm w-20 text-center"
-                            :value="getSetting(gateway.id, 'custom_gateway_commission')"
-                            @input="setSetting(gateway.id, 'custom_gateway_commission', $event.target.value)"
-                        />
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-xs text-base-content/70">Комиссия</span>
+                            <select
+                                class="select select-bordered select-xs"
+                                :value="getCommissionMode(gateway.id)"
+                                @change="setCommissionMode(gateway.id, $event.target.value)"
+                            >
+                                <option value="inherit">Наследовать</option>
+                                <option value="flat">Единая</option>
+                                <option value="tiered">По сумме</option>
+                            </select>
+                        </div>
+                        <div v-if="getCommissionMode(gateway.id) === 'flat'" class="flex justify-between items-center">
+                            <span class="text-xs text-base-content/70">Тотал %</span>
+                            <input
+                                type="text"
+                                class="input input-bordered input-sm w-20 text-center"
+                                :value="getSetting(gateway.id, 'custom_gateway_commission')"
+                                @input="setSetting(gateway.id, 'custom_gateway_commission', $event.target.value)"
+                            />
+                        </div>
+                        <div v-if="getCommissionMode(gateway.id) === 'tiered'">
+                            <button
+                                type="button"
+                                class="btn btn-ghost btn-xs"
+                                @click="toggleTierPanel(gateway.id)"
+                            >
+                                {{ expandedTierGatewayIds.includes(gateway.id) ? 'Скрыть диапазоны' : 'Настроить диапазоны' }}
+                            </button>
+                            <div v-if="expandedTierGatewayIds.includes(gateway.id)" class="mt-3">
+                                <CommissionTiersEditor
+                                    :model-value="getMerchantTiers(gateway.id)"
+                                    mode="total_only"
+                                    :currency="gateway.currency"
+                                    @update:model-value="setMerchantTiers(gateway.id, $event)"
+                                />
+                            </div>
+                        </div>
                     </div>
                     <div
                         v-if="isAdmin && gatewayEditMode === true"

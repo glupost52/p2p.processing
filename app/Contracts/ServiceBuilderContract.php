@@ -42,6 +42,10 @@ interface ServiceBuilderContract
 
     public function profit(): ProfitServiceContract;
 
+    public function commissionRate(): CommissionRateResolverContract;
+
+    public function traderEffectiveCommission(): TraderEffectiveCommissionServiceContract;
+
     public function antiFraudSetting(): AntiFraudSettingServiceContract;
 
     public function antiFraud(): AntiFraudServiceContract;

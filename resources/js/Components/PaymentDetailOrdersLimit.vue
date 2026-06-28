@@ -12,7 +12,17 @@ const props = defineProps({
     },
 });
 
-const hasLimit = computed(() => props.daily_successful_orders_limit !== null && props.daily_successful_orders_limit !== '');
+const hasLimit = computed(() => {
+    const limit = props.daily_successful_orders_limit;
+
+    if (limit === null || limit === undefined || limit === '') {
+        return false;
+    }
+
+    const limit_value = Number(limit);
+
+    return Number.isFinite(limit_value) && limit_value > 0;
+});
 
 const percent = computed(() => {
     if (!hasLimit.value) {

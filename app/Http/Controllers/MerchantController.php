@@ -113,6 +113,8 @@ class MerchantController extends Controller
             'gateway_settings' => $gatewaySettings,
         ]);
 
+        queries()->merchant()->forget($merchant->fresh());
+
         if ($request->expectsJson()) {
             return response()->json([
                 'merchant' => MerchantResource::make($merchant->fresh('categories'))->resolve(),

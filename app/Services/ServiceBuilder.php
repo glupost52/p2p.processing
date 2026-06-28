@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Contracts\CommissionRateResolverContract;
+use App\Contracts\TraderEffectiveCommissionServiceContract;
 use App\Contracts\DeviceServiceContract;
 use App\Contracts\DisputeServiceContract;
 use App\Contracts\FundsHolderServiceContract;
@@ -122,6 +124,16 @@ class ServiceBuilder implements ServiceBuilderContract
     public function profit(): ProfitServiceContract
     {
         return make(ProfitServiceContract::class);
+    }
+
+    public function commissionRate(): CommissionRateResolverContract
+    {
+        return make(CommissionRateResolverContract::class);
+    }
+
+    public function traderEffectiveCommission(): TraderEffectiveCommissionServiceContract
+    {
+        return make(TraderEffectiveCommissionServiceContract::class);
     }
 
     public function antiFraudSetting(): AntiFraudSettingServiceContract

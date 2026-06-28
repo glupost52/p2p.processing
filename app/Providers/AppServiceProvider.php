@@ -10,7 +10,8 @@ use App\Contracts\LoginHistoryServiceContract;
 use App\Contracts\MainPageCacheServiceContract;
 use App\Contracts\MainPageStatsServiceContract;
 use App\Contracts\MarketServiceContract;
-use App\Contracts\CallbackServiceContract;
+use App\Contracts\CommissionRateResolverContract;
+use App\Contracts\TraderEffectiveCommissionServiceContract;
 use App\Contracts\MerchantApiLogServiceContract;
 use App\Contracts\MerchantApiStatisticsServiceContract;
 use App\Contracts\OrderPoolingServiceContract;
@@ -61,6 +62,10 @@ use App\Queries\Interfaces\MerchantApiLogQueries;
 use App\Queries\Interfaces\CallbackLogQueries;
 use App\Queries\QueriesBuilder;
 use App\Services\Auth\LoginHistoryService;
+use App\Services\Commission\CommissionRateResolver;
+use App\Services\Commission\TraderEffectiveCommissionService;
+use App\Services\Commission\CommissionTierService;
+use App\Services\Commission\TraderCommissionRateService;
 use App\Services\Device\DeviceService;
 use App\Services\Dispute\DisputeService;
 use App\Services\Invoice\InvoiceService;
@@ -162,6 +167,22 @@ class AppServiceProvider extends ServiceProvider
         });
         $this->app->singleton(ProfitServiceContract::class, function () {
             return new ProfitService();
+        });
+        $this->app->singleton(CommissionRateResolverContract::class, function () {
+            return new CommissionRateResolver();
+        });
+        $this->app->singleton(TraderEffectiveCommissionServiceContract::class, function () {
+            return new TraderEffectiveCommissionService(
+                commissionRateResolver: make(CommissionRateResolverContract::class),
+            );
+        });
+        $this->app->singleton(CommissionTierService::class, function () {
+            return new CommissionTierService();
+        });
+        $this->app->singleton(TraderCommissionRateService::class, function () {
+            return new TraderCommissionRateService(
+                commissionTierService: make(CommissionTierService::class),
+            );
         });
         $this->app->singleton(AntiFraudSettingServiceContract::class, function () {
             return new AntiFraudSettingService();

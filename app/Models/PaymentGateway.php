@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CommissionOperationType;
 use App\Casts\CurrencyCast;
 use App\Enums\DetailType;
 use App\Services\Money\Currency;
@@ -35,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property Currency $currency
  * @property Collection<int, PaymentDetail> $paymentDetails
  * @property Collection<int, Order> $orders
+ * @property Collection<int, PaymentGatewayCommissionTier> $commissionTiers
  */
 class PaymentGateway extends Model
 {
@@ -121,8 +123,43 @@ class PaymentGateway extends Model
         return $this->hasMany(Order::class);
     }
 
+    public function commissionTiers(): HasMany
+    {
+        return $this->hasMany(PaymentGatewayCommissionTier::class);
+    }
+
     public function scopeActive(Builder $query): void
     {
         $query->where('is_active', 1);
+    }
+
+    public function commissionTiersSummary(CommissionOperationType $operationType): ?string
+    {
+        if (! $this->relationLoaded('commissionTiers')) {
+            return null;
+        }
+
+        $tiers = $this->commissionTiers
+            ->where('operation_type', $operationType)
+            ->sortBy([
+                ['sort_order', 'asc'],
+                ['min_amount', 'asc'],
+            ]);
+
+        if ($tiers->isEmpty()) {
+            return null;
+        }
+
+        return $tiers
+            ->map(function (PaymentGatewayCommissionTier $tier) {
+                return sprintf(
+                    '%s–%s: %s%% / %s%%',
+                    number_format($tier->min_amount, 0, '', ' '),
+                    number_format($tier->max_amount, 0, '', ' '),
+                    rtrim(rtrim(number_format((float) $tier->trader_commission_rate, 2, '.', ''), '0'), '.'),
+                    rtrim(rtrim(number_format((float) $tier->total_service_commission_rate, 2, '.', ''), '0'), '.'),
+                );
+            })
+            ->implode('; ');
     }
 }

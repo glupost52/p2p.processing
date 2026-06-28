@@ -273,6 +273,11 @@ class User extends Authenticatable
         return $this->hasMany(UserTempVipActivation::class);
     }
 
+    public function traderCommissionRates(): HasMany
+    {
+        return $this->hasMany(TraderCommissionRate::class);
+    }
+
     /**
      * Рассчитать данные прогресса временного VIP.
      */

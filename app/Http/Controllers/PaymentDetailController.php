@@ -282,7 +282,7 @@ class PaymentDetailController extends Controller
             'name' => $detail->name,
             'initials' => $detail->initials,
             'is_active' => (bool) $detail->is_active,
-            'daily_limit' => (int) $detail->daily_limit->toPrecision(),
+            'daily_limit' => $detail->daily_limit ? (int) $detail->daily_limit->toPrecision() : null,
             'daily_successful_orders_limit' => $detail->daily_successful_orders_limit,
             'max_pending_orders_quantity' => $detail->max_pending_orders_quantity,
             'min_order_amount' => $detail->min_order_amount ? (int) $detail->min_order_amount->toPrecision() : null,

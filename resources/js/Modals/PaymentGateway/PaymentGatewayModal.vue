@@ -14,6 +14,7 @@ import DropDownWithCheckbox from "@/Components/Form/DropDownWithCheckbox.vue";
 import DropDownWithRadio from "@/Components/Form/DropDownWithRadio.vue";
 import TextInputBlock from "@/Components/Form/TextInputBlock.vue";
 import Dropzone from "@/Components/Form/Dropzone.vue";
+import CommissionTiersEditor from "@/Components/Commission/CommissionTiersEditor.vue";
 import { computed, ref, watch } from "vue";
 import { router } from '@inertiajs/vue3';
 
@@ -30,6 +31,10 @@ const primeTimeCommissionRate = ref(0);
 
 const paymentGateway = ref(null);
 const sms_sender = ref(null);
+const activeTab = ref('main');
+const tierErrors = ref({});
+const commissionTiersOrders = ref([]);
+const commissionTiersPayouts = ref([]);
 
 const isEditMode = computed(() => paymentGatewayEditModal.value.showed);
 const isCreateMode = computed(() => paymentGatewayCreateModal.value.showed && !paymentGatewayEditModal.value.showed);
@@ -67,7 +72,11 @@ const form = ref({
 const resetCommonState = () => {
     sms_sender.value = null;
     errors.value = {};
+    tierErrors.value = {};
     paymentGateway.value = null;
+    activeTab.value = 'main';
+    commissionTiersOrders.value = [];
+    commissionTiersPayouts.value = [];
 };
 
 const resetFormForCreate = () => {
@@ -121,6 +130,45 @@ const close = () => {
     modalStore.closeModal('paymentGatewayEdit');
 };
 
+const mapGatewayTiers = (tiers, operationType) => {
+    const tierList = Array.isArray(tiers) ? tiers : [];
+
+    return tierList
+        .filter((tier) => tier.operation_type === operationType)
+        .map((tier) => ({
+            min_amount: tier.min_amount,
+            max_amount: tier.max_amount,
+            trader_commission_rate: tier.trader_commission_rate,
+            total_service_commission_rate: tier.total_service_commission_rate,
+        }));
+};
+
+const normalizeTiersPayload = (tiers) => tiers.map((tier, index) => ({
+    min_amount: Number(tier.min_amount),
+    max_amount: Number(tier.max_amount),
+    trader_commission_rate: Number(tier.trader_commission_rate),
+    total_service_commission_rate: Number(tier.total_service_commission_rate),
+    sort_order: index,
+}));
+
+const syncCommissionTiers = async (gatewayId) => {
+    tierErrors.value = {};
+
+    await axios.put(route('admin.payment-gateways.commission-tiers.sync', gatewayId), {
+        operation_type: 'order',
+        tiers: normalizeTiersPayload(commissionTiersOrders.value),
+    }, {
+        headers: { Accept: 'application/json' },
+    });
+
+    await axios.put(route('admin.payment-gateways.commission-tiers.sync', gatewayId), {
+        operation_type: 'payout',
+        tiers: normalizeTiersPayload(commissionTiersPayouts.value),
+    }, {
+        headers: { Accept: 'application/json' },
+    });
+};
+
 const loadCreateData = () => {
     loading.value = true;
     axios.get(route('admin.payment-gateways.create-data'))
@@ -161,6 +209,8 @@ const loadEditData = () => {
             form.value.currency = (paymentGateway.value.currency || 'RUB').toUpperCase();
             form.value.detail_types = paymentGateway.value.detail_types ?? [];
             form.value.sms_senders = paymentGateway.value.sms_senders ?? [];
+            commissionTiersOrders.value = mapGatewayTiers(paymentGateway.value.commission_tiers, 'order');
+            commissionTiersPayouts.value = mapGatewayTiers(paymentGateway.value.commission_tiers, 'payout');
             loading.value = false;
         })
         .catch(() => {
@@ -240,16 +290,30 @@ const submitEdit = () => {
     if (!paymentGateway.value) return;
     processing.value = true;
     errors.value = {};
+    tierErrors.value = {};
     axios.post(route('admin.payment-gateways.update', paymentGateway.value.id), toFormData(true), {
         headers: { 'Accept': 'application/json' }
     })
-        .then(response => {
-            processing.value = false;
+        .then(async (response) => {
             if (response.data?.success || response.status === 200 || response.status === 204) {
-                close();
-                resetFormForEdit();
-                router.reload({ only: ['paymentGateways'] });
+                try {
+                    await syncCommissionTiers(paymentGateway.value.id);
+                    processing.value = false;
+                    close();
+                    resetFormForEdit();
+                    router.reload({ only: ['paymentGateways'] });
+                } catch (error) {
+                    processing.value = false;
+                    tierErrors.value = error.response?.data?.errors ?? {};
+                    if (error.response?.data?.message) {
+                        tierErrors.value = { tiers: [error.response.data.message] };
+                    }
+                    activeTab.value = 'commissions';
+                }
+                return;
             }
+
+            processing.value = false;
         })
         .catch(error => {
             processing.value = false;
@@ -305,7 +369,17 @@ watch(
                 <span class="loading loading-spinner loading-md"></span>
             </div>
             <div v-else>
+                <div v-if="isEditMode" class="tabs tabs-boxed mb-4">
+                    <button type="button" class="tab" :class="{ 'tab-active': activeTab === 'main' }" @click="activeTab = 'main'">
+                        Основное
+                    </button>
+                    <button type="button" class="tab" :class="{ 'tab-active': activeTab === 'commissions' }" @click="activeTab = 'commissions'">
+                        Комиссии по лимитам
+                    </button>
+                </div>
+
                 <form v-if="canShowForm" @submit.prevent="submit" class="mt-2 space-y-6">
+                    <div v-show="!isEditMode || activeTab === 'main'" class="space-y-6">
                     <div class="rounded-box border border-base-300 p-4">
                         <div class="text-sm font-medium mb-3">
                             Идентификаторы метода
@@ -812,6 +886,29 @@ watch(
                                 </label>
                             </div>
                         </div>
+                    </div>
+                    </div>
+
+                    <div v-if="isEditMode && activeTab === 'commissions'" class="space-y-6">
+                        <div class="rounded-box border border-base-300 p-4 space-y-4">
+                            <div class="text-sm font-medium">Сделки</div>
+                            <CommissionTiersEditor
+                                v-model="commissionTiersOrders"
+                                mode="full"
+                                :currency="form.currency || 'RUB'"
+                            />
+                        </div>
+
+                        <div class="rounded-box border border-base-300 p-4 space-y-4">
+                            <div class="text-sm font-medium">Выплаты</div>
+                            <CommissionTiersEditor
+                                v-model="commissionTiersPayouts"
+                                mode="full"
+                                :currency="form.currency || 'RUB'"
+                            />
+                        </div>
+
+                        <InputError :message="tierErrors.tiers?.[0]" />
                     </div>
                 </form>
             </div>

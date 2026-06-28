@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\PaymentGatewayCommissionTierResource;
+use App\Enums\CommissionOperationType;
 use App\Models\PaymentGateway;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -38,6 +40,19 @@ class PaymentGatewayResource extends JsonResource
             'reservation_time_for_orders' => $this->reservation_time_for_orders,
             'reservation_time_for_payouts' => $this->reservation_time_for_payouts,
             'logo_path' => $this->logo ? asset('storage/logos/'.$this->logo) : null,
+            'commission_tiers' => PaymentGatewayCommissionTierResource::collection(
+                $this->whenLoaded('commissionTiers')
+            ),
+            'commission_orders_tiers_label' => $this->when(
+                $this->relationLoaded('commissionTiers'),
+                fn () => $this->commissionTiersSummary(CommissionOperationType::ORDER)
+                    ?? sprintf('%s%% / %s%%', $this->trader_commission_rate_for_orders, $this->total_service_commission_rate_for_orders),
+            ),
+            'commission_payouts_tiers_label' => $this->when(
+                $this->relationLoaded('commissionTiers'),
+                fn () => $this->commissionTiersSummary(CommissionOperationType::PAYOUT)
+                    ?? sprintf('%s%% / %s%%', $this->trader_commission_rate_for_payouts, $this->total_service_commission_rate_for_payouts),
+            ),
         ];
     }
 }

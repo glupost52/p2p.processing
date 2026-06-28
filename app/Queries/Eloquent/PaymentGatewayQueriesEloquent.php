@@ -38,6 +38,7 @@ class PaymentGatewayQueriesEloquent implements PaymentGatewayQueries
                 $query->whereIn('currency', $currencyCodes);
             })
             ->orderByDesc('id')
+            ->with('commissionTiers')
             ->paginate(request()->per_page ?? 10);
     }
 
