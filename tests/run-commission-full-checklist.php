@@ -567,6 +567,19 @@ try {
 
 Carbon::setTestNow();
 
+section('Container smoke');
+
+try {
+    $callbackService = app(\App\Contracts\CallbackServiceContract::class);
+    if ($callbackService instanceof \App\Services\OrderCallback\CallbackService) {
+        pass('CallbackServiceContract resolves from container');
+    } else {
+        fail('CallbackServiceContract resolves from container', \App\Services\OrderCallback\CallbackService::class, get_class($callbackService));
+    }
+} catch (Throwable $exception) {
+    fail('CallbackServiceContract resolves from container', 'ok', $exception->getMessage());
+}
+
 echo "\n========================================\n";
 echo "PASSED: {$passed}\n";
 echo "FAILED: {$failed}\n";
