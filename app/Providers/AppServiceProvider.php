@@ -20,6 +20,7 @@ use App\Contracts\PayoutServiceContract;
 use App\Contracts\ProfitServiceContract;
 use App\Contracts\AntiFraudSettingServiceContract;
 use App\Contracts\AntiFraudServiceContract;
+use App\Contracts\CallbackServiceContract;
 use App\Contracts\NotificationServiceContract;
 use App\Contracts\TelegramServiceContract;
 use App\Contracts\QueriesBuilderContract;
