@@ -166,7 +166,9 @@ const copyCallbackUrl = async (callback_url) => {
                                         </dl>
                                         <dl v-if="order.external_id" class="block sm:flex items-center justify-between gap-4">
                                             <dt class="text-base-content/70">Внешний ID</dt>
-                                            <dd class="font-medium text-base-content">{{ order.external_id }}</dd>
+                                            <dd class="text-xs font-medium text-base-content">
+                                                <DUUID :uuid="order.external_id"/>
+                                            </dd>
                                         </dl>
                                         <dl class="block sm:flex items-center justify-between gap-4">
                                             <dt class="text-base-content/70">Сумма</dt>
