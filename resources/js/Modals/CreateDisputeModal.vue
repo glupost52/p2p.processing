@@ -22,6 +22,10 @@ const form = useForm({
 const orderId = computed(() => createDisputeModal.value.params?.order_id ?? null);
 
 const storeRoute = computed(() => {
+    if (! orderId.value) {
+        return null;
+    }
+
     if (viewStore.isSupportViewMode) {
         return route('support.disputes.store', orderId.value);
     }
@@ -47,7 +51,7 @@ const resetForm = () => {
 };
 
 const submit = () => {
-    if (! orderId.value || form.processing) {
+    if (! orderId.value || ! storeRoute.value || form.processing) {
         return;
     }
 

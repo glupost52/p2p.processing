@@ -139,6 +139,7 @@ export const useModalStore = defineStore('modal', {
         confirmModal: (state) => state.modals.confirm,
         disputeModal: (state) => state.modals.dispute,
         disputeCancelModal: (state) => state.modals.disputeCancel,
+        createDisputeModal: (state) => state.modals.createDispute,
         depositModal: (state) => state.modals.deposit,
         withdrawalModal: (state) => state.modals.withdrawal,
         orderModal: (state) => state.modals.order,
