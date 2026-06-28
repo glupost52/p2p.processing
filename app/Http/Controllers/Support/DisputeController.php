@@ -42,4 +42,15 @@ class DisputeController extends Controller
             return redirect()->back()->with('error', $e->getMessage());
         }
     }
+
+    public function rollback(Dispute $dispute)
+    {
+        try {
+            services()->dispute()->rollback($dispute->id);
+
+            return redirect()->back()->with('message', 'Спор снова открыт.');
+        } catch (DisputeException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
 } 

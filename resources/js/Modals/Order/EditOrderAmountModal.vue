@@ -6,6 +6,7 @@ import ModalHeader from "@/Components/Modals/Components/ModalHeader.vue";
 
 import { storeToRefs } from 'pinia'
 import { useModalStore } from "@/store/modal.js";
+import {useViewStore} from "@/store/view.js";
 import InputError from "@/Components/InputError.vue";
 import InputLabel from "@/Components/InputLabel.vue";
 import {router, useForm} from "@inertiajs/vue3";
@@ -14,6 +15,7 @@ import NumberInput from "@/Components/NumberInput.vue";
 import { watch } from "vue";
 
 const modalStore = useModalStore();
+const viewStore = useViewStore();
 const { editOrderAmountModal } = storeToRefs(modalStore);
 
 const close = () => {
@@ -32,8 +34,13 @@ watch(() => editOrderAmountModal.value.showed, (showed) => {
 });
 
 const submit = () => {
+    const order = editOrderAmountModal.value.params.order;
+    const updateAmountRoute = viewStore.isSupportViewMode
+        ? route('support.orders.update.amount', order.id)
+        : route('orders.update.amount', order.id);
+
     form
-        .patch(route('orders.update.amount', editOrderAmountModal.value.params.order.id), {
+        .patch(updateAmountRoute, {
             preserveScroll: true,
             onSuccess: () => {
                 modalStore.closeAll();

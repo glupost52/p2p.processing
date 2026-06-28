@@ -4,6 +4,7 @@ import ModalBody from "@/Components/Modals/Components/ModalBody.vue";
 import PaymentDetail from "@/Components/PaymentDetail.vue";
 import Modal from "@/Components/Modals/Modal.vue";
 import ModalHeader from "@/Components/Modals/Components/ModalHeader.vue";
+import { computed } from 'vue';
 import { storeToRefs } from 'pinia'
 import { useModalStore } from "@/store/modal.js";
 import {useViewStore} from "@/store/view.js";
@@ -34,6 +35,17 @@ const rollback = (dispute) => {
 const showReceipt = () => {
     window.open(disputeModal.value.params.dispute.receipt_url, '_blank').focus();
 };
+
+const showDisputeFooter = computed(() => {
+    const status = disputeModal.value.params.dispute?.status;
+    if (!status) {
+        return false;
+    }
+    if (viewStore.isSupportViewMode) {
+        return status !== 'pending';
+    }
+    return viewStore.isAdminViewMode || status === 'pending' || status === 'canceled';
+});
 </script>
 
 <template>
@@ -189,9 +201,9 @@ const showReceipt = () => {
                 </div>
             </form>
         </ModalBody>
-        <ModalFooter v-show="(viewStore.isAdminViewMode || disputeModal.params.dispute.status === 'pending' || disputeModal.params.dispute.status === 'canceled') && !viewStore.isSupportViewMode">
+        <ModalFooter v-show="showDisputeFooter">
             <div class="flex justify-center w-full">
-                <template v-if="disputeModal.params.dispute.status === 'pending'">
+                <template v-if="!viewStore.isSupportViewMode && disputeModal.params.dispute.status === 'pending'">
                     <button
                         @click.prevent="cancel(disputeModal.params.dispute)"
                         type="button"

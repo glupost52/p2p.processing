@@ -1,5 +1,5 @@
 <script setup>
-import {Head, usePage} from "@inertiajs/vue3";
+import {Head, router, useForm, usePage} from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import PaymentDetail from "@/Components/PaymentDetail.vue";
 import DisputeStatus from "@/Components/DisputeStatus.vue";
@@ -18,6 +18,25 @@ const modalStore = useModalStore();
 
 const disputes = usePage().props.disputes;
 const oldestDisputeCreatedAt = usePage().props.oldestDisputeCreatedAt;
+
+const confirmRollbackDispute = (dispute) => {
+    modalStore.openConfirmModal({
+        title: 'Вы уверены что хотите открыть спор #' + dispute?.id + '?',
+        body: 'Референтная сделка не изменит свой статус.',
+        confirm_button_name: 'Открыть спор',
+        confirm: () => {
+            useForm({}).patch(route('support.disputes.rollback', dispute.id), {
+                preserveScroll: true,
+                onFinish: () => {
+                    modalStore.closeAll()
+                    router.visit(route('support.disputes.index'), {
+                        only: ['disputes'],
+                    })
+                },
+            });
+        }
+    });
+}
 
 defineOptions({ layout: AuthenticatedLayout })
 </script>
@@ -253,7 +272,7 @@ defineOptions({ layout: AuthenticatedLayout })
             </template>
         </MainTableSection>
 
-        <DisputeModal />
+        <DisputeModal @rollback="confirmRollbackDispute" />
         <ConfirmModal />
     </div>
 </template>
