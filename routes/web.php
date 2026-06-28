@@ -160,6 +160,8 @@ Route::group(['middleware' => ['2fa']], function () {
         Route::patch('/orders/{order}/amount', [\App\Http\Controllers\Support\OrderController::class, 'updateAmount'])->name('orders.update.amount');
         Route::get('/disputes', [\App\Http\Controllers\Support\DisputeController::class, 'index'])->name('disputes.index');
         Route::post('/disputes/{order}', [\App\Http\Controllers\Support\DisputeController::class, 'store'])->name('disputes.store');
+        Route::patch('/disputes/{dispute}/accept', [\App\Http\Controllers\Support\DisputeController::class, 'accept'])->name('disputes.accept');
+        Route::patch('/disputes/{dispute}/cancel', [\App\Http\Controllers\Support\DisputeController::class, 'cancel'])->name('disputes.cancel');
         Route::patch('/disputes/{dispute}/rollback', [\App\Http\Controllers\Support\DisputeController::class, 'rollback'])->name('disputes.rollback');
     });
 

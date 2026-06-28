@@ -5,6 +5,7 @@ import PaymentDetail from "@/Components/PaymentDetail.vue";
 import DisputeStatus from "@/Components/DisputeStatus.vue";
 import {useModalStore} from "@/store/modal.js";
 import DisputeModal from "@/Modals/DisputeModal.vue";
+import CancelDisputeModal from "@/Modals/CancelDisputeModal.vue";
 import ConfirmModal from "@/Components/Modals/ConfirmModal.vue";
 import MainTableSection from "@/Wrappers/MainTableSection.vue";
 import DateTime from "@/Components/DateTime.vue";
@@ -18,6 +19,25 @@ const modalStore = useModalStore();
 
 const disputes = usePage().props.disputes;
 const oldestDisputeCreatedAt = usePage().props.oldestDisputeCreatedAt;
+
+const confirmAcceptDispute = (dispute) => {
+    modalStore.openConfirmModal({
+        title: 'Вы уверены что хотите принять спор #' + dispute?.id + '?',
+        body: 'В таком случае, сделка будет закрыта как оплаченная.',
+        confirm_button_name: 'Принять спор',
+        confirm: () => {
+            useForm({}).patch(route('support.disputes.accept', dispute.id), {
+                preserveScroll: true,
+                onFinish: () => {
+                    modalStore.closeAll()
+                    router.visit(route('support.disputes.index'), {
+                        only: ['disputes'],
+                    })
+                },
+            });
+        }
+    });
+}
 
 const confirmRollbackDispute = (dispute) => {
     modalStore.openConfirmModal({
@@ -272,7 +292,12 @@ defineOptions({ layout: AuthenticatedLayout })
             </template>
         </MainTableSection>
 
-        <DisputeModal @rollback="confirmRollbackDispute" />
+        <DisputeModal
+            @accept="confirmAcceptDispute"
+            @cancel="modalStore.openDisputeCancelModal({dispute:$event})"
+            @rollback="confirmRollbackDispute"
+        />
+        <CancelDisputeModal />
         <ConfirmModal />
     </div>
 </template>

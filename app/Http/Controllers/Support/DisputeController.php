@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Support;
 use App\Enums\DisputeStatus;
 use App\Exceptions\DisputeException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Dispute\CancelRequest;
 use App\Http\Requests\Dispute\StoreRequest;
 use App\Http\Resources\DisputeResource;
 use App\Models\Dispute;
@@ -38,6 +39,28 @@ class DisputeController extends Controller
             services()->dispute()->create($order->id, $request->file('receipt'));
 
             return redirect()->back()->with('message', 'Спор успешно открыт.');
+        } catch (DisputeException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function accept(Dispute $dispute)
+    {
+        try {
+            services()->dispute()->accept($dispute->id);
+
+            return redirect()->back()->with('message', 'Спор принят.');
+        } catch (DisputeException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function cancel(CancelRequest $request, Dispute $dispute)
+    {
+        try {
+            services()->dispute()->cancel($dispute->id, $request->reason);
+
+            return redirect()->back()->with('message', 'Спор отклонен.');
         } catch (DisputeException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }

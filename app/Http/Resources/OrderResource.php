@@ -48,7 +48,7 @@ class OrderResource extends JsonResource
             'status_name' => $this->status_name,
             'callback_url' => $this->callback_url,
             'is_h2h' => $this->is_h2h,
-            $this->mergeWhen(auth()->check() && auth()->user()->hasRole('Super Admin'), function () {
+            $this->mergeWhen(auth()->check() && auth()->user()->hasAnyRole(['Super Admin', 'Support']), function () {
                 return [
                     'amount_updates_history' => $this->amount_updates_history ? array_reverse($this->amount_updates_history) : null,
                     'total_fee' => $this->total_fee?->toBeauty(),
@@ -113,7 +113,11 @@ class OrderResource extends JsonResource
             'finished_at' => $this->finished_at?->toISOString(),
             'created_at' => $this->created_at->toISOString(),
             'payment_link' => route('payment.show', $this->uuid),
-            'canEditAmount' => $this->status->equals(OrderStatus::PENDING) && $this->dispute_exists && $this->trader_paid_for_order,
+            'canEditAmount' => auth()->check()
+                && auth()->user()->hasAnyRole(['Super Admin', 'Support'])
+                && $this->status->equals(OrderStatus::PENDING)
+                && $this->dispute_exists
+                && $this->trader_paid_for_order,
         ];
     }
 }

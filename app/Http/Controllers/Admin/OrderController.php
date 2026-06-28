@@ -32,11 +32,15 @@ class OrderController extends Controller
         ]);
 
         if (auth()->user()->hasRole('Trader')) {
-            $fivePercent = $order->amount->div(20)->toInt();
-            $changedAmount = $order->amount->sub($request->amount)->abs()->toInt();
-            if ($changedAmount > $fivePercent) {
-                return redirect()->back()->with('error', "Сумму можно изменить не более чем на 5% ($fivePercent {$order->currency->getSymbol()})");
-            }
+            abort(403);
+
+            // if (auth()->user()->hasRole('Trader')) {
+            //     $fivePercent = $order->amount->div(20)->toInt();
+            //     $changedAmount = $order->amount->sub($request->amount)->abs()->toInt();
+            //     if ($changedAmount > $fivePercent) {
+            //         return redirect()->back()->with('error', "Сумму можно изменить не более чем на 5% ($fivePercent {$order->currency->getSymbol()})");
+            //     }
+            // }
         }
 
         services()->order()->updateAmount(

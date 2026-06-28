@@ -41,10 +41,10 @@ const showDisputeFooter = computed(() => {
     if (!status) {
         return false;
     }
-    if (viewStore.isSupportViewMode) {
-        return status !== 'pending';
+    if (viewStore.isSupportViewMode || viewStore.isAdminViewMode) {
+        return true;
     }
-    return viewStore.isAdminViewMode || status === 'pending' || status === 'canceled';
+    return status === 'pending' || status === 'canceled';
 });
 </script>
 
@@ -203,7 +203,7 @@ const showDisputeFooter = computed(() => {
         </ModalBody>
         <ModalFooter v-show="showDisputeFooter">
             <div class="flex justify-center w-full">
-                <template v-if="!viewStore.isSupportViewMode && disputeModal.params.dispute.status === 'pending'">
+                <template v-if="disputeModal.params.dispute.status === 'pending'">
                     <button
                         @click.prevent="cancel(disputeModal.params.dispute)"
                         type="button"
